@@ -1,0 +1,2 @@
+Features list
+* Support rename with git -mv . This is usefull for people working within repositories
