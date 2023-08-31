@@ -1,0 +1,22 @@
+When we download an article from an academic publisher in pdf format to our computer or shared hard drive, the file we download can be named in very different and non-standard ways. 
+
+Examples of how an article can be named by the publishers include: 
+8159387367244290.pdf 
+csp_43_166.pdf 
+Journal of Exercise Rehabilitation_9_544.pdf 
+Crowston_et_al2012.pdf 
+
+The PDF format is the standard for research articles, but there is no standard for the file names. Variation occurs across publishers and even across journals and publication years by the same publisher. 
+
+In our view, it would be much easier if all articles' PDFs would be named as "author + (year) + title  + publication +  publisher". 
+
+For example, it is much easier to retrieve some information from  "McIntyre, D. P., & Srinivasan, A. (2017). Networks, platforms, and strategy: Emerging views and next steps. Strategic Management Journal, 38(1), Wiley.pdf"  than from  "10.1002.smj.3510.pdf"  as named by the publisher. 
+
+With our struggles conducting a systematic literature review on a project funded by the Academy of Finland (see https://web.abo.fi/projekt/diwil/literature.html) we developed a small software tool that renamed pdf files in a more standardized format to ease or job of indexing and finding relevant articles and its content for our research project. 
+
+We found this tool (written in the python programming language) very useful for us and want now to share it with other researchers as an open-source project. 
+
+This is timely as now, most modern operating systems  (Windows, Mac and Linux) allow for long file names. Most researchers are no longer impacted by the limitation of the 255 characters of file names inherited from MS-DOS legacy file systems. 
+
+We will hire a coder proficient with the python programming language, git repositories and open-source software to further test, document and publish our tool an open-source software project so other researchers can benefit from it as well. 
+
