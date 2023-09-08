@@ -13,6 +13,11 @@ It renames the file by author, year, title, publication, and publisher.
 ## OUTPUTS: 
 * The same pdf files are renamed in a standardised way - author, year, title, publication, and publisher. 
 
+# Mission # 
+
+* MISSION 1 - Enable researchers across the world to store and find research articles in the PC or shared folders in a more easy and faster way
+* MISSION 2- Advance the standardisation on how research articles in pdf format are named. 
+
 # Benefits of using NameIT
 
 * Research articles are easier to find 
