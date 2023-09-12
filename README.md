@@ -12,7 +12,7 @@ Based on the pdf metadata and on the content of the document first page, it rena
 ## OUTPUT: 
 * The same pdf files are renamed in a standardised way - author, year, title, publication (e.g., journal name), and publisher. 
 
-Example: "4242343.pdf" as downloaded from the publisher woud become "Teixeira, J., Robles, G., & González-Barahona, J. M. (2015). Lessons learned from applying social network analysis on an industrial Free/Libre/Open Source Software ecosystem. Journal of Internet Services and Applications. Springer.pdf" as renamed by the nameIt tool. 
+Example: "4242343.pdf" as downloaded from the publisher woud become "Teixeira, J., Robles, G., & González-Barahona, J. M. (2015). Lessons learned from applying social network analysis on an industrial Free/Libre/Open Source Software ecosystem. Journal of Internet Services and Applications. Springer.pdf" as renamed by the NameIt tool. 
 
 # Mission # 
 
