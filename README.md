@@ -2,7 +2,7 @@
 
 NameIt is a software tool that renames research articles in pdf files in a standardised way. 
 
-Based on the pdf metadata and on the content of the document first page, it renames the file by author, year, title, publication, and publisher. 
+Based on the pdf metadata and on the content of the document first page, it renames the file  with author, year, title, publication, and publisher. 
 
 # In-and-out
 
