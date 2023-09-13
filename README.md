@@ -29,6 +29,10 @@ Example: "4242343.pdf" as downloaded from the publisher woud become "Teixeira, J
 * Human users - Researchers or research teams that want to store and exchange files with a standard naming convention. 
 * Software users -  Software tools supporting the management of citations, bibliometrics, references, and literature reviews have now a tool and a standard way to "file name" research articles in PDF format.
 
+# Requirements # 
+
+Python 3
+
 # How to use it 
 
 * Invoke the Python script and pass the file to be renamed as a document.
@@ -38,6 +42,11 @@ Example: "4242343.pdf" as downloaded from the publisher woud become "Teixeira, J
 # How it works 
 
 First, the tool tries to find pdf's metadata to rename the file. If no metadata is found, it will try to find the author, year, title, publication, and publisher from the article 1st page. 
+
+
+# License #
+
+MIT license. Please acknowledge derivative works. 
 
 # Aknowledgements 
 
