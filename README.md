@@ -31,9 +31,9 @@ Example: "4242343.pdf" as downloaded from the publisher woud become "Teixeira, J
 
 # Requirements # 
 
-Python 3
-Habanero (nameIt will try install it if you don't have it)
-PyMuPDF (nameIt will try install it if you don't have it)
+* Python 3
+* Habanero (nameIt will try install it if you don't have it)
+* PyMuPDF (nameIt will try install it if you don't have it)
 
 We suport the ext3, ext4, xfs, zfs, NTFS, APFS, HFS+ and xFAT. Support for FAT32 pending. 
 Should work in most modern computers running Linux, macOS and Windows. 
