@@ -33,7 +33,14 @@ Example: "4242343.pdf" as downloaded from the publisher woud become "Teixeira, J
 
 Python 3
 
+
+# Dependencies 
+
+
+
 # How to use it 
+
+* Install the Habanero and PyMuPDF dependencies 
 
 * Invoke the Python script and pass the file to be renamed as a document.
 
