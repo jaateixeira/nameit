@@ -43,11 +43,11 @@ Should work in most modern computers running Linux, macOS and Windows. Problems 
 NameIt tries to automatically install its dependencies. If it fails, you can try to install them using pip - the package installer for Python
 
 ## Habanero ##
- $ pip (or pip3) install habanero
+`$ pip (or pip3) install habanero`
 
 ## PyMuPDF ##
 
-$ pip (or pip3) install PyMuPDF
+`$ pip (or pip3) install PyMuPDF`
 
 
 # How to use it 
@@ -60,9 +60,9 @@ $ pip (or pip3) install PyMuPDF
 ## Example: ## 
 
 
-$ NameIt 4242343.pdf
+`$ NameIt 4242343.pdf`
 
-$ NameIt research-articles-collection
+`$ NameIt research-articles-collection`
 
 
 * A GUI version for less tech users is forthcoming  <funding needed - funding being appied - new contributors welcome>.
