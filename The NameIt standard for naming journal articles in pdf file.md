@@ -40,7 +40,7 @@ According to the NameIt standard, research journal articles in pdf file should b
 
 ## Publication 
 
-* Usually they are not so long as titles, but some publishers often abreviate them (Advances in Behavioral Biology 	becomes Adv. Behav. Biol.).  The NameIt standard **avoids journal name abreviations** as different
+* Usually they are not so long as titles, but some publishers often abreviate them (*Advances in Behavioral Biology* 	becomes *Adv. Behav. Biol.*).  The NameIt standard **avoids journal name abreviations** as different
   organizations abreviate them in different ways. 
 
 ## Publisher 
