@@ -32,13 +32,15 @@ Example: "4242343.pdf" as downloaded from the publisher woud become "Teixeira, J
 # Requirements # 
 
 * Python 3
-* Habanero (nameIt will try install it if you don't have it)
-* PyMuPDF (nameIt will try install it if you don't have it)
+* Habanero (NameIt will try install it if you don't have it)
+* PyMuPDF (NameIt will try install it if you don't have it)
 
 We suport the ext3, ext4, xfs, zfs, NTFS, APFS, HFS+ and xFAT filesystems. Support for FAT32 pending. 
 Should work in most modern computers running Linux, macOS and Windows. Problems could arise with the use of old  USB flash drives  and SDcard disks in old Linux Kernels. 
 
 # Dependencies 
+
+NameIt tries to automatically install its dependencies. If it fails, you can try to install them using pip - the package installer for Python
 
 ## Habanero ##
  $ pip (or pip3) install habanero
