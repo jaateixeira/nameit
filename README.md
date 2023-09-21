@@ -59,8 +59,10 @@ $ pip (or pip3) install PyMuPDF
 
 ## Example: ## 
 
-** $ NameIt 4242343.pdf
-** $ NameIt research-articles-collection
+
+$ NameIt 4242343.pdf
+
+$ NameIt research-articles-collection
 
 
 * A GUI version for less tech users is forthcoming  <funding needed - funding being appied - new contributors welcome>.
