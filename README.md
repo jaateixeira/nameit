@@ -54,7 +54,14 @@ $ pip (or pip3) install PyMuPDF
 
 * Install the Habanero and PyMuPDF dependencies 
 
-* Invoke the Python script and pass the file to be renamed as a document.
+* Invoke the Python script and pass the file to be renamed as an argument.
+* You can also pass a folder as an argument and NameIt will attempt to rename all pdf files in that folder.
+
+## Example: ## 
+
+** $ NameIt 4242343.pdf
+** $ NameIt research-articles-collection
+
 
 * A GUI version for less tech users is forthcoming  <funding needed - funding being appied - new contributors welcome>.
 
