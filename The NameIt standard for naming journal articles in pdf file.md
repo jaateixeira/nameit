@@ -4,13 +4,19 @@
 
 According to the NameIt standard, research journal articles in pdf file should be named by 
 
-**Author(s) (year). Title. Publication, Publisher.** 
+**Author(s) (year). Title. Publication. Publisher.** 
 
 ## Authors 
 
-* Author names can be express using the Unicode character set (e.g., Apolinário, Widèn).
+* Author names can be expressed using the Unicode character set and UTF-8 encoding (e.g., Apolinário, Widèn). In other words, NameIt accepts accents (e.g., Å á ê ò) and other often problematic characters. 
 
-* If an article have than two authors the filename will start with the the first author followerd by et al. to save filename space.
+* Authors are just refered by their surname to save filename space.
+* 
+  - José A. Teixeira -> named just Teixeira. 
+  - Teixeira, J. -> named just Teixeira.
+  - Teixeira, A. J. -> names just Teixeira. 
+
+* If an article have more than two authors, the filename will start with the first author surname followed by et al. to save filename space.
 
 ## Year 
 
@@ -28,7 +34,8 @@ According to the NameIt standard, research journal articles in pdf file should b
 
 ## Publication 
 
-* Usually they are not so long as titles, but some publishers often abreviate them. 
+* Usually they are not so long as titles, but some publishers often abreviate them (Advances in Behavioral Biology 	becomes Adv. Behav. Biol.).  The NameIt standard **avoids journal name abreviations** as different
+  organization rename them in different ways. 
 
 ## Publisher 
 
