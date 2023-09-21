@@ -23,7 +23,21 @@ According to the NameIt standard such article in pdf format should be file-named
 
 `"Grady et al. (2019). Emotions in storybooks: A comparison of storybooks that represent ethnic and racial groups in the United States. Psychology of Popular Media Culture, American Psychological Association.pdf"
 
-Note that by not listing all authors we save filename space and we avoud DOIs and URLs as they are problemantic as part of a filename.
+Note that by not listing all authors we save filename space and we avoid DOIs and URLs as they are problemantic for filenames (e.g., the caracter '/'  can be understood as a folder path in many filesystems). 
+
+### Operating System Filesystems 
+
+We suport the **ext3, ext4, xfs, zfs, NTFS, APFS, HFS+ and xFAT** filesystems and therefore we constrained by them. 
+
+Some filesystems restrict the length of filename 
+
+###  Unicode and Python
+
+We adopt [unicode](https://home.unicode.org/) as a standard for encoding file names so you can move them between different filesystems and operating systems. 
+
+The actual renaming of the filenames is handled by the python os Miscellaneous operating system interfaces[https://docs.python.org/3/library/os.html] library. 
+
+
 
 
 
