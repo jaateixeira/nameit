@@ -1,2 +1,8 @@
 Features list
+
+* Test if we are on online mode to use doi remot e technique
+* Adding arguemnt for path / doler where files are creaetd
+* 
+
+
 * Support rename with git -mv . This is usefull for people working within repositories
