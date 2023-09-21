@@ -63,7 +63,7 @@ Note: That due to the restriction of the size of the filename to 255 characters,
 | Recomended citation by the publisher   |      pdf filename as downloaded from the publisher     |  pdf filename according to the NameIt standard |
 |----------|:-------------:|------:|
 | Teixeira, J., Robles, G. & González-Barahona, J.M. Lessons learned from applying social network analysis on an industrial Free/Libre/Open Source Software ecosystem. *J Internet Serv Appl* **6**, 14 (2015). [https://doi.org/10.1186](https://doi.org/10.1186)/s13174-015-0028-2 |  s13174-015-0028-2.pdf | Teixeira et al. (2015). Lessons learned from applying social network analysis on an industrial Free/Libre/Open Source Software ecosystem. Journal of Internet Services and Applications. Springer.pdf |
-| col 2 is |    centered   |   $12 |
+| Ruokolainen, H., Widén, G., & Eskola, E. L. (2023). How and why does official information become misinformation? A typology of official misinformation. *Library & Information Science Research*, 45(2), 101237. |    1-s2.0-S0740818823000130-main.pdf  |  Ruokolainen et al. (2023). How and why does official information become misinformation? A typology of official misinformation. Library & Information Science Research. Elsevier.pdf |
 | col 3 is | right-aligned |    $1 |
 
 
