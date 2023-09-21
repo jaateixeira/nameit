@@ -32,10 +32,16 @@ Example: "4242343.pdf" as downloaded from the publisher woud become "Teixeira, J
 # Requirements # 
 
 Python 3
-
+Habanero
 
 # Dependencies 
 
+## Habanero ##
+ $ pip (or pip3) install habanero
+
+## PyMuPDF ##
+
+$ pip (or pip3) install PyMuPDF
 
 
 # How to use it 
