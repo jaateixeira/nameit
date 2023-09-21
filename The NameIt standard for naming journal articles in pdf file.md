@@ -6,6 +6,8 @@ According to the NameIt standard, research journal articles in pdf file should b
 
 **Author(s) (year). Title. Publication. Publisher.** 
 
+** The filename needs to containt a maximum of 255 characters**
+
 ## Authors 
 
 * Author names can be expressed using the Unicode character set and UTF-8 encoding (e.g., Apolinário, Widèn). In other words, NameIt accepts accents (e.g., Å á ê ò) and other often problematic characters. 
