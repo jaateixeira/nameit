@@ -21,7 +21,7 @@ According to [APA 7th style](https://apastyle.apa.org/style-grammar-guidelines/r
 
 According to the NameIt standard such article in pdf format should be file-named as 
 
-`"Grady et al. (2019). Emotions in storybooks: A comparison of storybooks that represent ethnic and racial groups in the United States. Psychology of Popular Media Culture, American Psychological Association".pdf`
+`"Grady et al. (2019). Emotions in storybooks: A comparison of storybooks that represent ethnic and racial groups in the United States. Psychology of Popular Media Culture, American Psychological Association.pdf"
 
 
 
