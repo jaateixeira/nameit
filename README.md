@@ -35,8 +35,8 @@ Example: "4242343.pdf" as downloaded from the publisher woud become "Teixeira, J
 * Habanero (nameIt will try install it if you don't have it)
 * PyMuPDF (nameIt will try install it if you don't have it)
 
-We suport the ext3, ext4, xfs, zfs, NTFS, APFS, HFS+ and xFAT. Support for FAT32 pending. 
-Should work in most modern computers running Linux, macOS and Windows. 
+We suport the ext3, ext4, xfs, zfs, NTFS, APFS, HFS+ and xFAT filesystems. Support for FAT32 pending. 
+Should work in most modern computers running Linux, macOS and Windows. Problems could arise with the use of old  USB flash drives  and SDcard disks in old Linux Kernels. 
 
 # Dependencies 
 
