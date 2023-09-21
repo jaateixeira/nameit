@@ -15,10 +15,10 @@ According to the NameIt standard, research journal articles in pdf file should b
 * Author names can be expressed using the Unicode character set and UTF-8 encoding (e.g., Apolinário, Widèn). In other words, NameIt accepts accents (e.g., Å á ê ò) and other often problematic characters. 
 
 * Authors are just refered by their surname to save filename space.
-* 
-  - José A. Teixeira -> named just Teixeira. 
-  - Teixeira, J. -> named just Teixeira.
-  - Teixeira, A. J. -> names just Teixeira. 
+ 
+- José A. Teixeira -> named just Teixeira. 
+- Teixeira, J. -> named just Teixeira.
+- Teixeira, A. J. -> names just Teixeira. 
 
 * If an article have more than two authors, the filename will start with the first author surname followed by et al. to save filename space.
 
