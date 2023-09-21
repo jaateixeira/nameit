@@ -6,7 +6,9 @@ According to the NameIt standard, research journal articles in pdf file should b
 
 **Author(s) (year). Title. Publication. Publisher.** 
 
-** The filename needs to containt a maximum of 255 characters**
+**The filename needs to containt a maximum of 255 characters**
+
+**The title of the publication is often cut to save space** 
 
 ## Authors 
 
@@ -32,7 +34,9 @@ According to the NameIt standard, research journal articles in pdf file should b
 
 * Needs to be often cut due to the restriction of the size of the filename to 255 characters.
 
-* Problematic characters that have a special meaning for operating systems (e.g., / \ " ' * ; - ? [ ] & ) need to be encoded in Unicode using UTF8. 
+* Problematic characters that have a special meaning for operating systems (e.g., / \ " ' * ; - ? [ ] & ) need to be encoded in Unicode using UTF8.
+
+* Cuts to save space are made at the end of the title, not at the beginning.  
 
 ## Publication 
 
