@@ -4,7 +4,7 @@
 
 According to the NameIt standard, research journal articles in pdf file should be named by 
 
-**Author(s) (year). Title. Publication. Publisher.** 
+**Author(s) (year). Title. Publication. Publisher.pdf** 
 
 **The filename needs to containt a maximum of 255 characters**
 
