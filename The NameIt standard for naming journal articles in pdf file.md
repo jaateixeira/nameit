@@ -35,11 +35,11 @@ According to the NameIt standard, research journal articles in pdf file should b
 ## Publication 
 
 * Usually they are not so long as titles, but some publishers often abreviate them (Advances in Behavioral Biology 	becomes Adv. Behav. Biol.).  The NameIt standard **avoids journal name abreviations** as different
-  organization rename them in different ways. 
+  organizations abreviate them in different ways. 
 
 ## Publisher 
 
-* There are not some many them as the big publishing houses been buying the small family owned publishing houses over the years.
+* There are not some many them as the big publishing houses have been buying the small family owned publishing houses over the years.
 
 * They are often redundant and NameIT should pick the shorter version to save filename space
 
@@ -87,9 +87,6 @@ Note that the NameIt standart is case sensitive. Uppercase and lowercase are bot
 We adopt [unicode](https://home.unicode.org/) and [UTF8](https://en.wikipedia.org/wiki/UTF-8) as standards for encoding file names so you can move them between different filesystems and operating systems. 
 
 The actual renaming of the filenames is handled by the [python os - Miscellaneous operating system interfaces](https://docs.python.org/3/library/os.html) library. 
-
-
-
 
 
 
