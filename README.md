@@ -24,7 +24,7 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher woud become "T
 * Research articles are easier to find.
 * Research articles are stored in a standardized way.
 
-## Advantages of retrieving a file from a hard drive over the publisher's website
+## Advantages of retrieving a well named pdf file from a hard drive over the publisher's website
 
 - Faster to find it 
 - Faster to open it
@@ -39,6 +39,16 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher woud become "T
 - You can get the pdf straight before even seeing the HTML web version
 - No cookies tracking your behaviour online
 - No hidden fingerprinting codes or watermarking schemes that identify the buyers for every copy of each PDF sold
+
+
+## Advantages of adoptiong the NameIt standard for naming research articles in pdf. 
+
+- Easier to understand what is on a file as filenames encode information on author, year, title, publication (e.g., journal name), and publisher.
+- Easier to link pdf files to entries on software tools suporting systematic literature reviews (see [https://aut.ac.nz.libguides.com/systematic_reviews/tools](https://aut.ac.nz.libguides.com/systematic_reviews/tools) for more information). 
+- Easier to link pdf files to reference management systems (see [https://www.helsinki.fi/en/helsinki-university-library/using-collections/courses-and-workshops/reference-management-software](https://www.helsinki.fi/en/helsinki-university-library/using-collections/courses-and-workshops/reference-management-software) for more information).
+- Better interopability between software tools that deal with research articles in pdf. 
+- Predictability (i.e., you will not be surprised on how a pdf file is named after being downloaded from a publisher website). 
+- Easier exchangability of collection of research articles between researchers, research groups, libraries and publishers.
 
 # TARGET USERS:  # 
 
