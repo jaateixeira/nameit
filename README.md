@@ -47,7 +47,7 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher woud become "T
 - Easier to link pdf files to entries on software tools suporting systematic literature reviews (see [https://aut.ac.nz.libguides.com/systematic_reviews/tools](https://aut.ac.nz.libguides.com/systematic_reviews/tools) for more information). 
 - Easier to link pdf files to reference management systems (see [https://www.helsinki.fi/en/helsinki-university-library/using-collections/courses-and-workshops/reference-management-software](https://www.helsinki.fi/en/helsinki-university-library/using-collections/courses-and-workshops/reference-management-software) for more information).
 - Better interopability between software tools that deal with research articles in pdf. 
-- Predictability (i.e., you will not be surprised on how a pdf file is named after being downloaded from a publisher website). 
+- Predictability (i.e., you will not be surprised on how a pdf file is named after being downloaded from a publisher website or the website of colleague). 
 - Easier exchangability of collection of research articles between researchers, research groups, libraries and publishers.
 
 # TARGET USERS:  # 
