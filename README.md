@@ -21,7 +21,7 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher woud become "T
 
 # Benefits of using NameIT
 
-* Research articles are easier to find.
+* Research articles are easier to get.
 * Research articles are stored in a standardized way.
 
 ## Advantages of retrieving a well named pdf file from a hard drive over the publisher's website
