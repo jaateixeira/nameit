@@ -4,23 +4,27 @@ import os
 import re
 import string
 import fitz  # PyMuPDF
+import unicodedata
+import subprocess
 from habanero import Crossref
 
+#checking for internet connection
+def check_internet_access():
+    try:
+        # Run the ping command to check internet connectivity
+        subprocess.check_call(["ping", "-c", "1", "google.com"])
+        return True
+    except subprocess.CalledProcessError:
+        return False
+    
 # limiting filenames to valid character
 def remove_invalid_characters(text):
     valid_characters = "-_.() %s%s" % (string.ascii_letters, string.digits)
-    cleaned_text = ''.join(c for c in text if c in valid_characters)
+    cleaned_text = ''.join(
+        c if c in valid_characters or unicodedata.category(c) in ('Mn', 'Mc', 'Ll', 'Lu', 'Lt', 'Lo') else '_'
+        for c in text
+    )
     return cleaned_text
-
-# truncating to lmit the file name for system to manage
-def truncate_filename(filename, max_length):
-    if len(filename) <= max_length:
-        return filename
-    else:
-        # Truncate and add a unique identifier to ensure uniqueness
-        base_name, extension = os.path.splitext(filename)
-        truncated_name = base_name[:max_length - len(extension) - 5]  # Leave room for "_x.pdf"
-        return f"{truncated_name}_{os.urandom(2).hex()}{extension}"
 
 # opening pdf file, reading the first page and extracting DOI with a very common pattern
 def extract_metadata_from_pdf(pdf_file):
@@ -74,18 +78,25 @@ def rename_pdf_file(pdf_file, metadata):
         title = metadata['message']['title'][0]
         year = metadata['message']['issued']['date-parts'][0][0]
         publication = metadata['message']['container-title'][0] if 'container-title' in metadata['message'] else 'Unknown publication'
+        publisher = metadata['message']['publisher'] if 'publisher' in metadata['message'] else 'Unknown publisher'
         
         # Create a valid filename
         cleaned_authornames = remove_invalid_characters(author_names)
         cleaned_title = remove_invalid_characters(title)
         cleaned_year = remove_invalid_characters(str(year))
         cleaned_publication = remove_invalid_characters(publication)
+        cleaned_publisher = remove_invalid_characters(publisher)
+       # Calculate the maximum title length, considering other details
+        max_title_length = 255 -  len(cleaned_authornames) - len(str(year)) - len(cleaned_publication) - len(cleaned_publisher) - len(" () ... @  - .pdf")
 
-        # Build the new filename
-        new_filename = f"{cleaned_authornames} ({cleaned_year}) {cleaned_title} @ {cleaned_publication}.pdf"
+        # Truncate the cleaned title
+        if len(cleaned_title) <= max_title_length:
+            cleaned_title = cleaned_title
+        else:
+            cleaned_title = cleaned_title[:max_title_length]+"..."
 
-        # Limit the filename to 128 characters
-        new_filename = truncate_filename(new_filename, 128)
+        # Build the new filename with the truncated title
+        new_filename = f"{cleaned_authornames} ({cleaned_year}) {cleaned_title} @ {cleaned_publication} - {cleaned_publisher}.pdf"
 
         # Rename the file
         os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_filename))
@@ -125,6 +136,10 @@ def process_folder(folder_path):
 
 # main code which helps to take two argument when running the program
 if __name__ == "__main__":
+    #Check for internet access
+    if not check_internet_access():
+        print("Internet Connection Unavailable. The program requires internet access to extract metadata for renaming.")
+        sys.exit(1)
     if len(sys.argv) != 2:
         print("Usage: python rename_pdf_by_metadata.py <FOLDER_PATH_OR_PDF_FILE_PATH>")
         sys.exit(1)
