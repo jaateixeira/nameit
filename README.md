@@ -29,7 +29,7 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher woud become "T
 - Faster to find it 
 - Faster to open it
 - Faster to print it (consider sustainability and ecological issues before printing)
-- Less duplication of digital resources (not you are saving space on your hard disk and saving traffic on the web)
+- Less duplication of digital resources (note that you are saving space on your hard disk and saving traffic on the web)
 - No need to login
 - No need to connect to VPN
 - No need to resolve some DOI
