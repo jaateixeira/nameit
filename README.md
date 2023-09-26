@@ -27,7 +27,7 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher woud become "T
 ## Advantages of retrieving a file from a hard drive over the publisher's website
 
 - Faster to find it 
-- Faster to get it 
+- Faster to open it
 - Faster to print it (consider sustainability and ecological issues before printing)
 - Less duplication of digital resources (not you are saving space on your hard disk and saving traffic on the web)
 - No need to login
@@ -38,7 +38,7 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher woud become "T
 - No overload with related or non-related information 
 - You can get the pdf straight before even seeing the HTML web version
 - No cookies tracking your behaviour online
-- No hidden fingerprinting codes or watermarking scheme that identify the buyer for every copy of each PDF sold
+- No hidden fingerprinting codes or watermarking schemes that identify the buyers for every copy of each PDF sold
 
 # TARGET USERS:  # 
 
