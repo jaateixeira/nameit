@@ -43,7 +43,7 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher woud become "T
 
 ## Advantages of adoptiong the NameIt standard for naming research articles in pdf. 
 
-- Easier to understand what is on a file as filenames encode information on author, year, title, publication (e.g., journal name), and publisher.
+- Easier to understand what is on a file as its filename encodes information on author, year, title, publication (e.g., journal name), and publisher.
 - Easier to link pdf files to entries on software tools suporting systematic literature reviews (see [https://aut.ac.nz.libguides.com/systematic_reviews/tools](https://aut.ac.nz.libguides.com/systematic_reviews/tools) for more information). 
 - Easier to link pdf files to reference management systems (see [https://www.helsinki.fi/en/helsinki-university-library/using-collections/courses-and-workshops/reference-management-software](https://www.helsinki.fi/en/helsinki-university-library/using-collections/courses-and-workshops/reference-management-software) for more information).
 - Better interopability between software tools that deal with research articles in pdf. 
