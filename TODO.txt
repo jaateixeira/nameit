@@ -2,7 +2,13 @@ Features list
 
 * Test if we are on online mode to use doi remot e technique
 * Adding arguemnt for path / doler where files are creaetd
-* 
+* Allow for renaming in a certain format for the user with additional arguments
+* Allow in organizing the file according to year of publication, name of Journal or publisher
+* Maybe a feature to extract bibliography directly into a text file or LATEX or BibTex
+* GUI based tool for Windows, Mac and Linux
 
 
 * Support rename with git -mv . This is usefull for people working within repositories
+
+* Try to look for further solution for PDF where there are no DOI
+* Maybe renamer for e-books
