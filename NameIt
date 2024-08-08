@@ -10,25 +10,9 @@ from loguru import logger
 from rich.console import Console
 from rich import print as rprint
 
-# List of required modules
-required_modules = [
-    "fitz",  # PyMuPDF
-    "habanero",
-    "loguru",
-    "rich"
-]
+from rich.traceback import install
+install(show_locals=True)
 
-# Function to check and install required modules
-def check_and_install_modules(modules):
-    for module in modules:
-        try:
-            importlib.import_module(module)
-        except ImportError:
-            print(f"{module} is not installed. Installing now...")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", module])
-
-# Check and install required modules
-check_and_install_modules(required_modules)
 
 # Import the required modules after ensuring they are installed
 import fitz  # PyMuPDF
@@ -40,6 +24,7 @@ logger.add(sys.stderr, level="INFO")
 
 # Set up rich console
 console = Console()
+
 
 # Checking for internet connection
 def check_internet_access():
@@ -94,17 +79,7 @@ def fetch_metadata_by_doi(doi):
         logger.error(f"Unexpected error fetching metadata by DOI: {e}")
     return None
 
-# Validate that the fetched metadata contains the required information
-def validate_metadata(metadata):
-    required_fields = ['author', 'issued', 'container-title', 'title', 'publisher']
-    for field in required_fields:
-        if field not in metadata['message']:
-            logger.error(f"Metadata is missing required field: {field}")
-            return False
-        if not metadata['message'][field]:
-            logger.error(f"Metadata field is empty: {field}")
-            return False
-    return True
+
 
 # Validate that the author field is a string
 def validate_author(author):
@@ -148,8 +123,42 @@ def validate_year(year):
         return False
     return True
 
+
+# Validate that the fetched metadata contains the required information
+def validate_metadata(metadata):
+
+    logger.info("Validating the metadata obtained through crossref.org")
+
+    # Note the year is found in the issued field in the metadata
+    # Note also that publication is found in the container-title in the metadata
+    required_fields = ['author', 'published', 'container-title', 'title', 'publisher']
+    
+    for field in required_fields:
+        if field not in metadata['message']:
+            logger.error(f"Metadata is missing required field: {field}")
+            sys.exit()
+            return False
+        
+        if not metadata['message'][field]:
+            logger.error(f"Metadata field is empty: {field}")
+            sys.exit()
+            return False
+
+    # So far only journal article are supported 
+    if metadata['message']['type'] != 'journal-article':
+        logger.error(f"Type of publication is not a journal-article. Not supported.")
+        sys.exit()
+        return False 
+
+    logger.info("Metadata have the required fields")
+    return True
+
+
 # Extracting family name for the authors
 def format_author_names(authors):
+
+    logger.info(f"Formatting authors {authors}")
+    
     if len(authors) == 1:
         return authors[0]['family']
     elif len(authors) == 2:
@@ -159,55 +168,67 @@ def format_author_names(authors):
 
 # Saving required information from the metadata to the file and removing invalid characters
 def rename_pdf_file(pdf_file, metadata):
-    try:
-        if not validate_metadata(metadata):
+
+    logger.info(f"renaming pdf file  {pdf_file}")
+    
+
+    if not validate_metadata(metadata):
+        return None
+    
+        
+    # Todo add description here the cross ref metadata     
+    authors = metadata['message']['author']
+
+
+    logger.info(f"Number of authors found in  metadata {len(authors)}")
+    logger.info(f"validating authors metadata {authors}")
+        
+        
+
+
+    for author in authors:
+        logger.info(f"validating author {author}")
+        validate_author(author['family'])
+        
+
+    author_names = format_author_names(authors)
+
+        
+        
+    title = metadata['message']['title'][0]
+    if not validate_title(title):
+        return None
+
+    year = metadata['message']['issued']['date-parts'][0][0]
+    if not validate_year(year):
+        return None
+
+    publication = metadata['message']['container-title'][0] if 'container-title' in metadata['message'] else 'Unknown publication'
+    if not validate_container_title(publication):
+        return None
+
+    publisher = metadata['message']['publisher'] if 'publisher' in metadata['message'] else 'Unknown publisher'
+    if not validate_publisher(publisher):
             return None
 
-        authors = metadata['message']['author']
-        if not all(validate_author(author['family']) for author in authors):
-            return None
+    cleaned_authornames = remove_invalid_characters(author_names)
+    cleaned_title = remove_invalid_characters(title)
+    cleaned_year = remove_invalid_characters(str(year))
+    cleaned_publication = remove_invalid_characters(publication)
+    cleaned_publisher = remove_invalid_characters(publisher)
 
-        author_names = format_author_names(authors)
-        title = metadata['message']['title'][0]
-        if not validate_title(title):
-            return None
+    max_title_length = 255 - len(cleaned_authornames) - len(str(year)) - len(cleaned_publication) - len(cleaned_publisher) - len(" () ... @  - .pdf")
 
-        year = metadata['message']['issued']['date-parts'][0][0]
-        if not validate_year(year):
-            return None
+    if len(cleaned_title) <= max_title_length:
+        cleaned_title = cleaned_title
+    else:
+        cleaned_title = cleaned_title[:max_title_length] + "..."
 
-        publication = metadata['message']['container-title'][0] if 'container-title' in metadata['message'] else 'Unknown publication'
-        if not validate_container_title(publication):
-            return None
+    new_filename = f"{cleaned_authornames} ({cleaned_year}) {cleaned_title} @ {cleaned_publication} - {cleaned_publisher}.pdf"
 
-        publisher = metadata['message']['publisher'] if 'publisher' in metadata['message'] else 'Unknown publisher'
-        if not validate_publisher(publisher):
-            return None
-
-        cleaned_authornames = remove_invalid_characters(author_names)
-        cleaned_title = remove_invalid_characters(title)
-        cleaned_year = remove_invalid_characters(str(year))
-        cleaned_publication = remove_invalid_characters(publication)
-        cleaned_publisher = remove_invalid_characters(publisher)
-
-        max_title_length = 255 - len(cleaned_authornames) - len(str(year)) - len(cleaned_publication) - len(cleaned_publisher) - len(" () ... @  - .pdf")
-
-        if len(cleaned_title) <= max_title_length:
-            cleaned_title = cleaned_title
-        else:
-            cleaned_title = cleaned_title[:max_title_length] + "..."
-
-        new_filename = f"{cleaned_authornames} ({cleaned_year}) {cleaned_title} @ {cleaned_publication} - {cleaned_publisher}.pdf"
-
-        os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_filename))
-        return new_filename
-    except KeyError as e:
-        logger.error(f"Metadata key error: {e}")
-    except OSError as e:
-        logger.error(f"File operation error: {e}")
-    except Exception as e:
-        logger.error(f"Unexpected error renaming PDF file: {e}")
-    return None
+    os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_filename))
+    return new_filename
+    
 
 # Processing folder or file
 def process_folder_or_file(path):
