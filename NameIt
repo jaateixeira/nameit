@@ -3,21 +3,33 @@ import sys
 import os
 import re
 import string
-import fitz  # PyMuPDF
 import unicodedata
 import subprocess
-from habanero import Crossref
+import importlib
 
-#checking for internet connection
+
+# Import the required modules after ensuring they are installed
+import fitz  # PyMuPDF
+from habanero import Crossref
+from loguru import logger
+from rich.console import Console
+
+# Set up logging with loguru
+logger.remove()  # Remove the default logger
+logger.add(sys.stderr, level="INFO")
+
+# Set up rich console
+console = Console()
+
+# Checking for internet connection
 def check_internet_access():
     try:
-        # Run the ping command to check internet connectivity
         subprocess.check_call(["ping", "-c", "1", "google.com"])
         return True
     except subprocess.CalledProcessError:
         return False
-    
-# limiting filenames to valid character
+
+# Limiting filenames to valid characters
 def remove_invalid_characters(text):
     valid_characters = "-_.() %s%s" % (string.ascii_letters, string.digits)
     cleaned_text = ''.join(
@@ -26,41 +38,36 @@ def remove_invalid_characters(text):
     )
     return cleaned_text
 
-# opening pdf file, reading the first page and extracting DOI with a very common pattern
+# Opening PDF file, reading the first page and extracting DOI with a very common pattern
 def extract_metadata_from_pdf(pdf_file):
     try:
-        # Open the PDF file using PyMuPDF
         pdf_document = fitz.open(pdf_file)
-        
-        # Extract text from the first page
         first_page = pdf_document[0]
         text = first_page.get_text("text")
-
-        # Use your DOI regex pattern here
         doi_pattern = r'10[.][\d.]{1,15}\/[-._;:()\/A-Za-z0-9<>]+[A-Za-z0-9]'
-
         doi_match = re.search(doi_pattern, text)
         if doi_match:
             doi = doi_match.group()
-            print ("Extracting DOI from file")
+            logger.info("Extracting DOI from file")
             return fetch_metadata_by_doi(doi)
         else:
             return None
     except Exception as e:
-        return str(e)
+        logger.error(f"Error extracting metadata from PDF: {e}")
+        return None
 
-#using crossref API to match the extracted DOI
+# Using Crossref API to match the extracted DOI
 def fetch_metadata_by_doi(doi):
     try:
         cr = Crossref()
         metadata = cr.works(doi)
-        print ("Extracting metadata through crossref.org")
+        logger.info("Extracting metadata through crossref.org")
         return metadata
     except Exception as e:
-        return str(e)
+        logger.error(f"Error fetching metadata by DOI: {e}")
+        return None
 
-# extracting family name for the authors, if there is one author only first author family name is extracted
-# if two author, both family name are extracted and save with 'and' and in case of more author first author family name, et al. is used
+# Extracting family name for the authors
 def format_author_names(authors):
     if len(authors) == 1:
         return authors[0]['family']
@@ -69,8 +76,7 @@ def format_author_names(authors):
     else:
         return f"{authors[0]['family']} et al."
 
-# saving required information from the metadata to the file and removing the invalid characters are performed here
-# all the filename are limited to allow for only valid character and with maximum character of 128 can be changed to longer
+# Saving required information from the metadata to the file and removing invalid characters
 def rename_pdf_file(pdf_file, metadata):
     try:
         authors = metadata['message']['author']
@@ -79,32 +85,29 @@ def rename_pdf_file(pdf_file, metadata):
         year = metadata['message']['issued']['date-parts'][0][0]
         publication = metadata['message']['container-title'][0] if 'container-title' in metadata['message'] else 'Unknown publication'
         publisher = metadata['message']['publisher'] if 'publisher' in metadata['message'] else 'Unknown publisher'
-        
-        # Create a valid filename
+
         cleaned_authornames = remove_invalid_characters(author_names)
         cleaned_title = remove_invalid_characters(title)
         cleaned_year = remove_invalid_characters(str(year))
         cleaned_publication = remove_invalid_characters(publication)
         cleaned_publisher = remove_invalid_characters(publisher)
-       # Calculate the maximum title length, considering other details
-        max_title_length = 255 -  len(cleaned_authornames) - len(str(year)) - len(cleaned_publication) - len(cleaned_publisher) - len(" () ... @  - .pdf")
 
-        # Truncate the cleaned title
+        max_title_length = 255 - len(cleaned_authornames) - len(str(year)) - len(cleaned_publication) - len(cleaned_publisher) - len(" () ... @  - .pdf")
+
         if len(cleaned_title) <= max_title_length:
             cleaned_title = cleaned_title
         else:
-            cleaned_title = cleaned_title[:max_title_length]+"..."
+            cleaned_title = cleaned_title[:max_title_length] + "..."
 
-        # Build the new filename with the truncated title
         new_filename = f"{cleaned_authornames} ({cleaned_year}) {cleaned_title} @ {cleaned_publication} - {cleaned_publisher}.pdf"
 
-        # Rename the file
         os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_filename))
         return new_filename
     except Exception as e:
-        return str(e)
+        logger.error(f"Error renaming PDF file: {e}")
+        return None
 
-# in case directory or pdf path are provided, the following processes are executed to select files before extractions are performed
+# Processing folder or file
 def process_folder_or_file(path):
     if os.path.isdir(path):
         process_folder(path)
@@ -114,13 +117,14 @@ def process_folder_or_file(path):
 
         if metadata:
             new_file_name = rename_pdf_file(pdf_file, metadata)
-            print(f"File renamed to: {new_file_name}")
+            if new_file_name:
+                console.print(f"[green]File renamed to: {new_file_name}[/green]")
         else:
-            print(f"DOI not found in {pdf_file}.")
+            console.print(f"[yellow]DOI not found in {pdf_file}.[/yellow]")
     else:
-        print("Invalid input. Please provide a valid folder path or PDF file path.")
+        console.print("[red]Invalid input. Please provide a valid folder path or PDF file path.[/red]")
 
-# focused on opening the folder and extracting individual files from the folder to perform the renaming
+# Processing folder
 def process_folder(folder_path):
     for root, _, files in os.walk(folder_path):
         for file in files:
@@ -130,19 +134,20 @@ def process_folder(folder_path):
 
                 if metadata:
                     new_file_name = rename_pdf_file(pdf_file, metadata)
-                    print(f"File renamed to: {new_file_name}")
+                    if new_file_name:
+                        console.print(f"[green]File renamed to: {new_file_name}[/green]")
                 else:
-                    print(f"DOI not found in {pdf_file}.")
+                    console.print(f"[yellow]DOI not found in {pdf_file}.[/yellow]")
 
-# main code which helps to take two argument when running the program
+# Main code
 if __name__ == "__main__":
-    #Check for internet access
     if not check_internet_access():
-        print("Internet Connection Unavailable. The program requires internet access to extract metadata for renaming.")
+        console.print("[red]Internet Connection Unavailable. The program requires internet access to extract metadata for renaming.[/red]")
         sys.exit(1)
     if len(sys.argv) != 2:
-        print("Usage: python rename_pdf_by_metadata.py <FOLDER_PATH_OR_PDF_FILE_PATH>")
+        console.print("[red]Usage: python rename_pdf_by_metadata.py <FOLDER_PATH_OR_PDF_FILE_PATH>[/red]")
         sys.exit(1)
 
     path = sys.argv[1]
     process_folder_or_file(path)
+    
