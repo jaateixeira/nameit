@@ -99,7 +99,7 @@ First, the tool tries to find pdf's metadata to rename the file. If no metadata 
 to connect to Internet to retrieve the metadata associated to the DOI. 
 
 If pdf's metadata is not found and the retrieval of metadata via the DOI fails, the tool will still try to find the author, year, title, publication, and publisher from the article 1st page. 
-It looks for the size of the text fonts  to distiguish between what is a title or what is the author imformation and so on. 
+It looks for the size of the text fonts  to distiguish between what is a title or what is the author imformation and so on, all by using the [LayoutLMv3](https://huggingface.co/docs/transformers/en/model_doc/layoutlmv3) pre-trained multimodal Transformer AI/ML model. 
 
 From more that 100 journal articles downloaded directly from the publishers websites. We could rename 98 without issues.  Author names with no so common accents and articles titles with not so common characters can be problematic.
 
