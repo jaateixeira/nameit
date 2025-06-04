@@ -6,35 +6,26 @@ import string
 import unicodedata
 import subprocess
 import importlib
-
-import argparse
-from argparse import ArgumentParser, HelpFormatter
+import argparse  # Added for command-line argument parsing
 
 from loguru import logger
 from rich.console import Console
 from rich import print as rprint
+
 from rich.traceback import install
-from rich.text import Text
-from rich.panel import Panel
 
 install(show_locals=True)
 
-def load_pdf_module():
-    global pymupdf
-    import pymupdf
+# Import the required modules after ensuring they are installed
+import fitz  # PyMuPDF
 
-def load_crossref_module():
-    global Crossref
-    from habanero import Crossref
+# low level client for working with Crossref's search API
+from habanero import Crossref
 
-def load_layoutlm_modules():
-    global LayoutLMv3Processor, LayoutLMv3ForTokenClassification, Image, torch
-    from transformers import LayoutLMv3Processor, LayoutLMv3ForTokenClassification
-    from PIL import Image
-    import torch
-
-
-
+# Layout processor - 3rd voice
+from transformers import LayoutLMv3Processor, LayoutLMv3ForTokenClassification
+from PIL import Image
+import torch
 
 # Set up logging with loguru
 logger.remove()  # Remove the default logger
@@ -43,59 +34,9 @@ logger.add(sys.stderr, level="INFO")
 # Set up rich console
 console = Console()
 
-class RichHelpFormatter(HelpFormatter):
-    def __init__(self, prog, **kwargs):
-        super().__init__(prog, **kwargs)
-        self.console = Console()
 
-    def _format_text(self, text):
-        text = super()._format_text(text)
-        return f"[dim]{text}[/dim]"
-
-    def _format_usage(self, usage, actions, groups, prefix):
-        usage_text = super()._format_usage(usage, actions, groups, prefix)
-        return f"[bold yellow]{usage_text}[/bold yellow]"
-
-    def _format_action(self, action):
-        # Get the default formatting
-        help_text = self._expand_help(action)
-        
-        # Colorize different parts
-        if action.option_strings:
-            options = ", ".join(f"[bold cyan]{opt}[/bold cyan]" for opt in action.option_strings)
-            help_line = f"{options} [green]{help_text}[/green]"
-        else:
-            help_line = f"[bold magenta]{action.dest}[/bold magenta] [green]{help_text}[/green]"
-        
-        return help_line
-
-    def format_help(self):
-        help_text = super().format_help()
-
-        # Instead of returning a Panel, we'll just add some formatting
-        return f"[blue]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/blue]\n" \
-               f"[bold]HELP[/bold]\n\n" \
-               f"{help_text}\n" \
-               f"[blue]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/blue]"
-
-
-
-class LazyImport:
-    def __init__(self, module_name):
-        self.module_name = module_name
-        self.module = None
-
-    def __getattr__(self, name):
-        if self.module is None:
-            self.module = __import__(self.module_name)
-        return getattr(self.module, name)
-    
-    
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
-                                     formatter_class=RichHelpFormatter,
-                                     epilog="[dim]Created with ❤️ using Python[/dim]")
-
+    parser = argparse.ArgumentParser(description="Rename PDF files based on metadata")
     parser.add_argument("path", help="Path to PDF file or folder containing PDFs")
 
     # Logging level options
@@ -119,6 +60,19 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def setup_logging(args):
+    logger.remove()  # Remove any existing handlers
+
+    if args.silent:
+        logger.add(sys.stderr, level="ERROR")  # Only show errors
+    elif args.verbose:
+        logger.add(sys.stderr, level="INFO")
+    elif args.very_verbose:
+        logger.add(sys.stderr, level="DEBUG")
+    else:
+        # Default logging level
+        logger.add(sys.stderr, level="WARNING")
+
 
 # Checking for internet connection
 def check_internet_access():
@@ -128,6 +82,7 @@ def check_internet_access():
     except subprocess.CalledProcessError:
         return False
 
+
 # Limiting filenames to valid characters
 def remove_invalid_characters(text):
     valid_characters = "-_.() %s%s" % (string.ascii_letters, string.digits)
@@ -136,7 +91,6 @@ def remove_invalid_characters(text):
         for c in text
     )
     return cleaned_text
-
 
 
 def extract_info_from_pdf(pdf_path):
@@ -183,13 +137,38 @@ def extract_info_from_pdf(pdf_path):
     return info
 
 
-
 # Opening PDF file, reading the first page and extracting DOI with a very common pattern
-def extract_metadata_from_pdf(pdf_file):
+def extract_metadata_from_pdf(pdf_file, args):
     try:
-        pdf_document = pymupdf.open(pdf_file)
+        # First try to use embedded PDF metadata if requested
+        if args.use_pdf_metadata:
+            logger.info("Attempting to extract metadata from PDF embedded data")
+            doc = fitz.open(pdf_file)
+            metadata = doc.metadata
+            if metadata and metadata.get('title'):
+                return {
+                    'message': {
+                        'title': [metadata.get('title', '')],
+                        'author': [{'family': metadata.get('author', 'Unknown')}],
+                        'issued': {'date-parts': [[metadata.get('creationDate', '').split('-')[0] or '']]},
+                        'container-title': [metadata.get('subject', '')],
+                        'publisher': metadata.get('producer', ''),
+                        'type': 'journal-article'
+                    }
+                }
+            return None
+
+        # Otherwise proceed with DOI extraction
+        pdf_document = fitz.open(pdf_file)
         first_page = pdf_document[0]
         text = first_page.get_text("text")
+
+        # Try LayoutLMv3 if requested
+        if args.use_layoutlmv3:
+            logger.info("Using LayoutLMv3 for metadata extraction")
+            return extract_info_from_pdf(pdf_file)
+
+        # Default behavior: look for DOI
         doi_pattern = r'10[.][\d.]{1,15}\/[-._;:()\/A-Za-z0-9<>]+[A-Za-z0-9]'
         doi_match = re.search(doi_pattern, text)
         if doi_match:
@@ -198,11 +177,14 @@ def extract_metadata_from_pdf(pdf_file):
             return fetch_metadata_by_doi(doi)
         else:
             return None
+    except fitz.FitzError as e:
+        logger.error(f"Error opening PDF: {e}")
     except re.error as e:
         logger.error(f"Error with DOI regex pattern: {e}")
     except Exception as e:
         logger.error(f"Unexpected error extracting metadata from PDF: {e}")
     return None
+
 
 # Using Crossref API to match the extracted DOI
 def fetch_metadata_by_doi(doi):
@@ -219,13 +201,13 @@ def fetch_metadata_by_doi(doi):
     return None
 
 
-
 # Validate that the author field is a string
 def validate_author(author):
     if not isinstance(author, str):
         logger.error(f"Author is not a string: {author}")
         return False
     return True
+
 
 # Validate that the issued field is a positive integer
 def validate_issued(issued):
@@ -234,12 +216,14 @@ def validate_issued(issued):
         return False
     return True
 
+
 # Validate that the container-title field is a string
 def validate_container_title(container_title):
     if not isinstance(container_title, str):
         logger.error(f"Container-title is not a string: {container_title}")
         return False
     return True
+
 
 # Validate that the title field is a string
 def validate_title(title):
@@ -248,12 +232,14 @@ def validate_title(title):
         return False
     return True
 
+
 # Validate that the publisher field is a string
 def validate_publisher(publisher):
     if not isinstance(publisher, str):
         logger.error(f"Publisher is not a string: {publisher}")
         return False
     return True
+
 
 # Validate that the year field is a positive integer
 def validate_year(year):
@@ -265,29 +251,25 @@ def validate_year(year):
 
 # Validate that the fetched metadata contains the required information
 def validate_metadata(metadata):
-
     logger.info("Validating the metadata obtained through crossref.org")
 
     # Note the year is found in the issued field in the metadata
     # Note also that publication is found in the container-title in the metadata
     required_fields = ['author', 'published', 'container-title', 'title', 'publisher']
-    
+
     for field in required_fields:
         if field not in metadata['message']:
             logger.error(f"Metadata is missing required field: {field}")
             sys.exit()
 
-        
         if not metadata['message'][field]:
             logger.error(f"Metadata field is empty: {field}")
             sys.exit()
 
-
-    # So far only journal article are supported 
+    # So far only journal article are supported
     if metadata['message']['type'] != 'journal-article':
         logger.error(f"Type of publication is not a journal-article. Not supported.")
         sys.exit()
-
 
     logger.info("Metadata have the required fields")
     return True
@@ -295,9 +277,8 @@ def validate_metadata(metadata):
 
 # Extracting family name for the authors
 def format_author_names(authors):
-
     logger.info(f"Formatting authors {authors}")
-    
+
     if len(authors) == 1:
         return authors[0]['family']
     elif len(authors) == 2:
@@ -305,35 +286,26 @@ def format_author_names(authors):
     else:
         return f"{authors[0]['family']} et al."
 
+
 # Saving required information from the metadata to the file and removing invalid characters
 def rename_pdf_file(pdf_file, metadata):
-
-    logger.info(f"renaming pdf file  {pdf_file}")
-    
+    logger.info(f"renaming pdf file {pdf_file}")
 
     if not validate_metadata(metadata):
         return None
-    
-        
-    # Todo add description here the cross ref metadata     
+
+    # Todo add description here the cross ref metadata
     authors = metadata['message']['author']
 
-
-    logger.info(f"Number of authors found in  metadata {len(authors)}")
+    logger.info(f"Number of authors found in metadata {len(authors)}")
     logger.info(f"validating authors metadata {authors}")
-        
-        
-
 
     for author in authors:
         logger.info(f"validating author {author}")
         validate_author(author['family'])
-        
 
     author_names = format_author_names(authors)
 
-        
-        
     title = metadata['message']['title'][0]
     if not validate_title(title):
         return None
@@ -342,13 +314,14 @@ def rename_pdf_file(pdf_file, metadata):
     if not validate_year(year):
         return None
 
-    publication = metadata['message']['container-title'][0] if 'container-title' in metadata['message'] else 'Unknown publication'
+    publication = metadata['message']['container-title'][0] if 'container-title' in metadata[
+        'message'] else 'Unknown publication'
     if not validate_container_title(publication):
         return None
 
     publisher = metadata['message']['publisher'] if 'publisher' in metadata['message'] else 'Unknown publisher'
     if not validate_publisher(publisher):
-            return None
+        return None
 
     cleaned_author_names = remove_invalid_characters(author_names)
     cleaned_title = remove_invalid_characters(title)
@@ -356,66 +329,58 @@ def rename_pdf_file(pdf_file, metadata):
     cleaned_publication = remove_invalid_characters(publication)
     cleaned_publisher = remove_invalid_characters(publisher)
 
-    max_title_length = 255 - len(cleaned_authornames) - len(str(year)) - len(cleaned_publication) - len(cleaned_publisher) - len(" () ... @  - .pdf")
+    max_title_length = 255 - len(cleaned_author_names) - len(str(year)) - len(cleaned_publication) - len(
+        cleaned_publisher) - len(" () ... @  - .pdf")
 
     if len(cleaned_title) <= max_title_length:
         cleaned_title = cleaned_title
     else:
         cleaned_title = cleaned_title[:max_title_length] + "..."
 
-    new_filename = f"{cleaned_authornames} ({cleaned_year}) {cleaned_title} @ {cleaned_publication} - {cleaned_publisher}.pdf"
+    new_filename = f"{cleaned_author_names} ({cleaned_year}) {cleaned_title} @ {cleaned_publication} - {cleaned_publisher}.pdf"
 
     os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_filename))
     return new_filename
-    
+
 
 # Processing folder or file
-def process_folder_or_file(path,args):
+def process_folder_or_file(path, args):
     if os.path.isdir(path):
-        process_folder(path)
+        process_folder(path, args)
     elif os.path.isfile(path) and path.lower().endswith('.pdf'):
         pdf_file = path
-        metadata = extract_metadata_from_pdf(pdf_file)
+        metadata = extract_metadata_from_pdf(pdf_file, args)
 
         if metadata:
             new_file_name = rename_pdf_file(pdf_file, metadata)
             if new_file_name:
                 console.print(f"[green]File renamed to: {new_file_name}[/green]")
         else:
-            console.print(f"[yellow]DOI not found in {pdf_file}.[/yellow]")
+            console.print(f"[yellow]Could not extract metadata from {pdf_file}.[/yellow]")
     else:
         console.print("[red]Invalid input. Please provide a valid folder path or PDF file path.[/red]")
 
+
 # Processing folder
-def process_folder(folder_path):
+def process_folder(folder_path, args):
     for root, _, files in os.walk(folder_path):
         for file in files:
             if file.endswith(".pdf"):
                 pdf_file = os.path.join(root, file)
-                metadata = extract_metadata_from_pdf(pdf_file)
+                metadata = extract_metadata_from_pdf(pdf_file, args)
 
                 if metadata:
                     new_file_name = rename_pdf_file(pdf_file, metadata)
                     if new_file_name:
                         console.print(f"[green]File renamed to: {new_file_name}[/green]")
                 else:
-                    console.print(f"[yellow]DOI not found in {pdf_file}.[/yellow]")
+                    console.print(f"[yellow]Could not extract metadata from {pdf_file}.[/yellow]")
+
 
 # Main code
 if __name__ == "__main__":
-
-    console.print("[bold green]. Parsing arguments")
-    
     args = parse_arguments()
-
-    console.print(args)
-
-    if args.use_pdf_metadata:
-        load_pdf_module()
-    if args.use_crossref:
-        load_crossref_module()
-    if args.use_layoutlmv3:
-        load_layoutlm_modules()
+    setup_logging(args)
 
     if not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
         console.print(
@@ -424,4 +389,3 @@ if __name__ == "__main__":
 
     path = args.path
     process_folder_or_file(path, args)
-
