@@ -1,5 +1,6 @@
 Features list
 
+* separate the three modes of operation
 * Test if we are on online mode to use doi remot e technique
 * Adding arguemnt for path / doler where files are creaetd
 * Allow for renaming in a certain format for the user with additional arguments

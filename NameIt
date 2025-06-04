@@ -13,15 +13,17 @@ from argparse import ArgumentParser, HelpFormatter
 from loguru import logger
 from rich.console import Console
 from rich import print as rprint
-from rich.traceback import install
 from rich.text import Text
-from rich.panel import Panel
+from rich.traceback import install
+from rich.pretty import pprint
+
+from varname import varname  # Requires: pip install varname
 
 install(show_locals=True)
 
 def load_pdf_module():
-    global pymupdf
-    import pymupdf
+    global fitz
+    import fitz
 
 def load_crossref_module():
     global Crossref
@@ -43,58 +45,10 @@ logger.add(sys.stderr, level="INFO")
 # Set up rich console
 console = Console()
 
-class RichHelpFormatter(HelpFormatter):
-    def __init__(self, prog, **kwargs):
-        super().__init__(prog, **kwargs)
-        self.console = Console()
-
-    def _format_text(self, text):
-        text = super()._format_text(text)
-        return f"[dim]{text}[/dim]"
-
-    def _format_usage(self, usage, actions, groups, prefix):
-        usage_text = super()._format_usage(usage, actions, groups, prefix)
-        return f"[bold yellow]{usage_text}[/bold yellow]"
-
-    def _format_action(self, action):
-        # Get the default formatting
-        help_text = self._expand_help(action)
-        
-        # Colorize different parts
-        if action.option_strings:
-            options = ", ".join(f"[bold cyan]{opt}[/bold cyan]" for opt in action.option_strings)
-            help_line = f"{options} [green]{help_text}[/green]"
-        else:
-            help_line = f"[bold magenta]{action.dest}[/bold magenta] [green]{help_text}[/green]"
-        
-        return help_line
-
-    def format_help(self):
-        help_text = super().format_help()
-
-        # Instead of returning a Panel, we'll just add some formatting
-        return f"[blue]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/blue]\n" \
-               f"[bold]HELP[/bold]\n\n" \
-               f"{help_text}\n" \
-               f"[blue]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/blue]"
-
-
-
-class LazyImport:
-    def __init__(self, module_name):
-        self.module_name = module_name
-        self.module = None
-
-    def __getattr__(self, name):
-        if self.module is None:
-            self.module = __import__(self.module_name)
-        return getattr(self.module, name)
-    
-    
 def parse_arguments():
     parser = argparse.ArgumentParser(description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
-                                     formatter_class=RichHelpFormatter,
                                      epilog="[dim]Created with ❤️ using Python[/dim]")
+
 
     parser.add_argument("path", help="Path to PDF file or folder containing PDFs")
 
@@ -189,7 +143,7 @@ def extract_info_from_pdf(pdf_path):
 # Opening PDF file, reading the first page and extracting DOI with a very common pattern
 def extract_metadata_from_pdf(pdf_file):
     try:
-        pdf_document = pymupdf.open(pdf_file)
+        pdf_document = fitz.open(pdf_file)
         first_page = pdf_document[0]
         text = first_page.get_text("text")
         doi_pattern = r'10[.][\d.]{1,15}\/[-._;:()\/A-Za-z0-9<>]+[A-Za-z0-9]'
@@ -358,14 +312,14 @@ def rename_pdf_file(pdf_file, metadata):
     cleaned_publication = remove_invalid_characters(publication)
     cleaned_publisher = remove_invalid_characters(publisher)
 
-    max_title_length = 255 - len(cleaned_authornames) - len(str(year)) - len(cleaned_publication) - len(cleaned_publisher) - len(" () ... @  - .pdf")
+    max_title_length = 255 - len(cleaned_author_names) - len(str(year)) - len(cleaned_publication) - len(cleaned_publisher) - len(" () ... @  - .pdf")
 
     if len(cleaned_title) <= max_title_length:
         cleaned_title = cleaned_title
     else:
         cleaned_title = cleaned_title[:max_title_length] + "..."
 
-    new_filename = f"{cleaned_authornames} ({cleaned_year}) {cleaned_title} @ {cleaned_publication} - {cleaned_publisher}.pdf"
+    new_filename = f"{cleaned_author_names} ({cleaned_year}) {cleaned_title} @ {cleaned_publication} - {cleaned_publisher}.pdf"
 
     os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_filename))
     return new_filename
@@ -406,11 +360,11 @@ def process_folder(folder_path):
 # Main code
 if __name__ == "__main__":
 
-    console.print("[bold green]. Parsing arguments")
+    console.print("\n [bold green]. Parsing arguments")
     
     args = parse_arguments()
 
-    console.print(args)
+    console.print(f"{args=}")
 
     if args.use_pdf_metadata:
         load_pdf_module()
@@ -419,7 +373,10 @@ if __name__ == "__main__":
     if args.use_layoutlmv3:
         load_layoutlm_modules()
 
-    if not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
+
+    console.print("\n [bold green]. Checking internet connection")
+
+    if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
         console.print(
             "[red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
         sys.exit(1)
