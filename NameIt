@@ -2,39 +2,118 @@
 import sys
 import os
 import re
+
 import string
 import unicodedata
 import subprocess
-import importlib
+
 
 import argparse
-from argparse import ArgumentParser, HelpFormatter
 
 from loguru import logger
 from rich.console import Console
 from rich import print as rprint
-from rich.text import Text
 from rich.traceback import install
-from rich.pretty import pprint
 
-from varname import varname  # Requires: pip install varname
+
+# 4 Dynamic module loading
+from typing import Optional, Any
+import importlib
+
+
 
 install(show_locals=True)
 
-def load_pdf_module():
+
+class ModuleLoader:
+    """A class to handle conditional module loading with rich feedback."""
+
+    def __init__(self):
+        self.loaded_modules = {}
+
+    def load(
+            self,
+            module_name: str,
+            package: Optional[str] = None,
+            alias: Optional[str] = None,
+            required_for: Optional[str] = None
+    ) -> Any:
+        """
+        Load a module with rich error handling.
+
+        Args:
+            module_name: Name of module to import
+            package: Package name if different from module
+            alias: Alternate name to store in loaded_modules
+            required_for: Feature that requires this module
+
+        Returns:
+            The imported module or None
+        """
+        try:
+            module = importlib.import_module(module_name)
+            key = alias or module_name
+            self.loaded_modules[key] = module
+
+            if package:
+                console.print(f"✓ [green]Successfully loaded [bold]{module_name}[/] from {package}[/]")
+            else:
+                console.print(f"✓ [green]Successfully loaded [bold]{module_name}[/][/]")
+
+            return module
+        except ImportError as e:
+            error_msg = f"✗ [red]Failed to load [bold]{module_name}[/]"
+            if required_for:
+                error_msg += f" (required for {required_for})"
+            error_msg += f"\n    → Install with: [cyan]pip install {package or module_name}[/]"
+
+            console.print(error_msg)
+            return None
+
+
+# Initialize the loader
+loader = ModuleLoader()
+
+
+def load_pdf_module() -> bool:
+    """Load PDF processing modules."""
+    if not loader.load("fitz", package="pymupdf", required_for="PDF processing"):
+        return False
+
     global fitz
-    import fitz
+    fitz = loader.loaded_modules['fitz']
+    return True
 
-def load_crossref_module():
+
+def load_crossref_module() -> bool:
+    """Load Crossref API client."""
+    if not loader.load("habanero", required_for="Crossref API access"):
+        return False
+
     global Crossref
-    from habanero import Crossref
+    Crossref = loader.loaded_modules['habanero'].Crossref
+    return True
 
-def load_layoutlm_modules():
-    global LayoutLMv3Processor, LayoutLMv3ForTokenClassification, Image, torch
-    from transformers import LayoutLMv3Processor, LayoutLMv3ForTokenClassification
-    from PIL import Image
-    import torch
 
+def load_layoutlm_modules() -> bool:
+    """Load LayoutLM and dependencies."""
+    success = True
+
+    if not loader.load("transformers", required_for="LayoutLM processing"):
+        success = False
+    if not loader.load("PIL", package="pillow", required_for="Image processing"):
+        success = False
+    if not loader.load("torch", required_for="PyTorch operations"):
+        success = False
+
+    if success:
+        global LayoutLMv3Processor, LayoutLMv3ForTokenClassification, Image, torch
+        LayoutLMv3Processor = loader.loaded_modules['transformers'].LayoutLMv3Processor
+        LayoutLMv3ForTokenClassification = loader.loaded_modules['transformers'].LayoutLMv3ForTokenClassification
+        Image = loader.loaded_modules['PIL'].Image
+        torch = loader.loaded_modules['torch']
+
+    return success
 
 
 
@@ -67,8 +146,7 @@ def parse_arguments():
                             help="Use PDF embedded metadata only",
                             )
     meta_group.add_argument("-c", "--use-crossref", action="store_true",
-                            help="Use Crossref API (default)",
-                            default=True)
+                            help="Use Crossref API (default)")
     meta_group.add_argument("-l","--use-layoutlmv3", action="store_true",
                             help="Use LayoutLMv3 model for extraction")
 
@@ -369,6 +447,7 @@ if __name__ == "__main__":
     if args.use_pdf_metadata:
         load_pdf_module()
     if args.use_crossref:
+        load_pdf_module()
         load_crossref_module()
     if args.use_layoutlmv3:
         load_layoutlm_modules()
