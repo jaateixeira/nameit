@@ -109,11 +109,13 @@ def parse_arguments():
 
     # Metadata source options
     meta_group = parser.add_mutually_exclusive_group()
-    meta_group.add_argument("--use-pdf-metadata", action="store_true",
-                            help="Use PDF embedded metadata only")
-    meta_group.add_argument("--use-crossref", action="store_true",
-                            help="Use Crossref API (default)")
-    meta_group.add_argument("--use-layoutlmv3", action="store_true",
+    meta_group.add_argument("-p","--use-pdf-metadata", action="store_true",
+                            help="Use PDF embedded metadata only",
+                            )
+    meta_group.add_argument("-c", "--use-crossref", action="store_true",
+                            help="Use Crossref API (default)",
+                            default=True)
+    meta_group.add_argument("-l","--use-layoutlmv3", action="store_true",
                             help="Use LayoutLMv3 model for extraction")
 
     return parser.parse_args()
