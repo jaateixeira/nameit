@@ -146,7 +146,7 @@ def parse_arguments():
                             help="Use PDF embedded metadata only",
                             )
     meta_group.add_argument("-c", "--use-crossref", action="store_true",
-                            help="Use Crossref API (default)")
+                            help="Use Crossref API (default)", default=True)
     meta_group.add_argument("-l","--use-layoutlmv3", action="store_true",
                             help="Use LayoutLMv3 model for extraction")
 
