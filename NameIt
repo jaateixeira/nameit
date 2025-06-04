@@ -447,6 +447,7 @@ if __name__ == "__main__":
     if args.use_pdf_metadata:
         load_pdf_module()
     if args.use_crossref:
+        "pdf module needed to find DOIs to call the Crossref API"
         load_pdf_module()
         load_crossref_module()
     if args.use_layoutlmv3:
