@@ -8,7 +8,7 @@ from NameIt import valid_path  # If renamed to NameIt.py
 class TestNameIt(unittest.TestCase):
     def setUp(self):
         """Create test data (files/dirs)."""
-        self.test_data_dir = os.path.join(os.path.dirname(__file__), "test_data")
+        self.test_data_dir = os.path.join(os.path.dirname(__file__), "unit_tests_data")
         os.makedirs(self.test_data_dir, exist_ok=True)
 
         # Valid PDF
