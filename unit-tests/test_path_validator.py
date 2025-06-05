@@ -2,10 +2,29 @@ import argparse
 import os
 import unittest
 
+from rich import print
+from rich.style import Style
+from rich.text import Text
+
 from NameIt import valid_path  # If renamed to NameIt.py
 
+print("\033[31mRED\033[0m \033[32mGREEN\033[0m")  # Should show colored words
 
-class TestNameIt(unittest.TestCase):
+
+class RichTestResult(unittest.TextTestResult):
+    def addSuccess(self, test):
+        super().addSuccess(test)
+        print(Text(f"✓ {test._testMethodName}", style="bold green"))
+
+    def addFailure(self, test, err):
+        super().addFailure(test, err)
+        print(Text(f"✗ {test._testMethodName} failed: {err[1]}", style="bold red"))
+
+    def addError(self, test, err):
+        super().addError(test, err)
+        print(Text(f"⚠ {test._testMethodName} errored: {err[1]}", style="bold yellow"))
+
+class TestPathValidator(unittest.TestCase):
     def setUp(self):
         """Create test data (files/dirs)."""
         self.test_data_dir = os.path.join(os.path.dirname(__file__), "unit_tests_data")
@@ -165,6 +184,19 @@ class TestNameIt(unittest.TestCase):
         # Invalid PDF
         with self.assertRaises(SystemExit):  # argparse exits on error
             parser.parse_args(["--file", self.invalid_pdf])
-            
+
+
+
 if __name__ == "__main__":
-    unittest.main()
+    # Print a header for clarity
+    from rich.console import Console
+    console = Console()
+    console.rule("[bold]Running Unit Tests")
+
+    # Run tests with rich-colored output
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestPathValidator)
+    runner = unittest.TextTestRunner(resultclass=RichTestResult, verbosity=2)
+    runner.run(suite)
+
+    # Print a summary footer
+    console.rule("[bold]Test Summary")
