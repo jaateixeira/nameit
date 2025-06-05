@@ -165,11 +165,11 @@ def valid_path(path_to_rename: str) -> str:
         )
 
     # --- Step 2: Check existence ---
-    if not os.path_to_rename.exists(path_to_rename):
+    if not os.path.exists(path_to_rename):
         raise argparse.ArgumentTypeError(f"path_to_rename '{path_to_rename}' does not exist.")
 
     # --- Step 3: Validate files ---
-    if os.path_to_rename.isfile(path_to_rename):
+    if os.path.isfile(path_to_rename):
         # Check extension
         if not path_to_rename.lower().endswith('.pdf'):
             raise argparse.ArgumentTypeError(
@@ -182,7 +182,7 @@ def valid_path(path_to_rename: str) -> str:
             )
 
     # --- Step 4: Validate directories ---
-    elif os.path_to_rename.isdir(path_to_rename):
+    elif os.path.isdir(path_to_rename):
         if not os.listdir(path_to_rename):
             raise argparse.ArgumentTypeError(
                 f"Directory '{path_to_rename}' is empty. Provide a non-empty directory."
