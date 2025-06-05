@@ -7,7 +7,7 @@ Features list
 * Allow in organizing the file according to year of publication, name of Journal or publisher
 * Maybe a feature to extract bibliography directly into a text file or LATEX or BibTex
 * GUI based tool for Windows, Mac and Linux
-
+* Suport wildcards
 
 * Support rename with git -mv . This is usefull for people working within repositories
 
