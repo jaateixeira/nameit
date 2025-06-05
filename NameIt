@@ -67,7 +67,7 @@ class ModuleLoader:
                 error_msg += f" (required for {required_for})"
             error_msg += f"\n    → Install with: [cyan]pip install {package or module_name}[/]"
 
-            console.print(error_msg)
+            console.print(e,error_msg)
             return None
 
 
@@ -124,12 +124,32 @@ logger.add(sys.stderr, level="INFO")
 # Set up rich console
 console = Console()
 
+
+def valid_path(path:str):
+    """Validate that the path exists, is a file/dir, and meets PDF/dir constraints."""
+    if not os.path.exists(path):
+        raise argparse.ArgumentTypeError(f"Path '{path}' does not exist.")
+
+    if os.path.isfile(path):
+        if not path.lower().endswith('.pdf'):
+            raise argparse.ArgumentTypeError(f"File '{path}' is not a PDF (missing .pdf extension).")
+        if not is_pdf_file(path):
+            raise argparse.ArgumentTypeError(f"File '{path}' does not appear to be a valid PDF (missing '%PDF-' header).")
+    elif os.path.isdir(path):
+        if not os.listdir(path):
+            raise argparse.ArgumentTypeError(f"Directory '{path}' is empty.")
+    else:
+        raise argparse.ArgumentTypeError(f"Path '{path}' is neither a file nor a directory.")
+
+    return path
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
                                      epilog="[dim]Created with ❤️ using Python[/dim]")
 
 
-    parser.add_argument("path", help="Path to PDF file or folder containing PDFs")
+    parser.add_argument("path", help="Path to PDF file or folder containing PDFs",type=valid_path)
 
     # Logging level options
     log_group = parser.add_mutually_exclusive_group()
@@ -401,16 +421,63 @@ def rename_pdf_file(pdf_file, metadata):
 
     os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_filename))
     return new_filename
-    
 
-# Processing folder or file
-def process_folder_or_file(path,args):
+
+
+import argparse
+import os
+
+def is_pdf_file(file_path):
+    """Check if the file is a PDF by reading its magic number."""
+    try:
+        with open(file_path, 'rb') as f:
+            header = f.read(5).decode('ascii', errors='ignore')
+            return header == '%PDF-'
+    except (IOError, UnicodeDecodeError):
+        return False
+
+
+
+
+def process_folder_or_file(path:str, args:argparse.Namespace) -> None:
+    """
+    Process either a folder or a PDF file based on the given path and arguments.
+
+    For directories, it processes all DPF file within. For PDF files, it extracts metadata
+    and optionally renames the file based on the metadata. The specific metadata
+    extraction method is determined by the provided arguments.
+
+    Args:
+        path (str): The path to either a directory or a PDF file to be processed.
+        args (Any): Command line arguments object containing processing options:
+            - use_pdf_metadata (bool): Whether to use PDF embedded metadata
+            - use_crossref (bool): Whether to use Crossref API
+            - use_layoutlmv3 (bool): Whether to use LayoutLMv3 model
+
+    Returns:
+        None: This function performs operations but doesn't return a value.
+
+    Raises:
+        SystemExit: If an invalid processing method is specified or if the input path is invalid.
+    """
+
+    # Test if the path is a directory
     if os.path.isdir(path):
         process_folder(path)
-    elif os.path.isfile(path) and path.lower().endswith('.pdf'):
-        pdf_file = path
-        metadata = extract_metadata_from_pdf(pdf_file)
 
+    # Handle PDF file case
+    elif os.path.isfile(path) and path.lower().endswith('.pdf'):
+        # Verify at least one processing method is specified
+        if args.use_pdf_metadata or args.use_crossref or args.use_layoutlmv3:
+            pdf_file = path
+            metadata = extract_metadata_from_pdf(pdf_file)
+        else:
+            console.print("[red]Method not known.[/red]")
+            console.print("[blue]Are you sure you don't want to use pdf metadata? "
+                          "or the Crossref API? Or the LayoutLMv3 model?[/blue]")
+            sys.exit()
+
+        # Process metadata if found
         if metadata:
             new_file_name = rename_pdf_file(pdf_file, metadata)
             if new_file_name:
@@ -419,6 +486,7 @@ def process_folder_or_file(path,args):
             console.print(f"[yellow]DOI not found in {pdf_file}.[/yellow]")
     else:
         console.print("[red]Invalid input. Please provide a valid folder path or PDF file path.[/red]")
+
 
 # Processing folder
 def process_folder(folder_path):
@@ -444,6 +512,7 @@ if __name__ == "__main__":
 
     console.print(f"{args=}")
 
+
     if args.use_pdf_metadata:
         load_pdf_module()
     if args.use_crossref:
@@ -462,5 +531,6 @@ if __name__ == "__main__":
         sys.exit(1)
 
     path = args.path
+
     process_folder_or_file(path, args)
 
