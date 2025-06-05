@@ -12,7 +12,7 @@ Based on the pdf metadata and on the content of the document first page, it rena
 ## OUTPUT: 
 * The same pdf files are renamed in a standardised way - author, year, title, publication (e.g., journal name), and publisher. 
 
-Example: "s13174-015-0028-2.pdf" as downloaded from the publisher woud become "Teixeira et al. (2015). Lessons learned from applying social network analysis on an industrial Free/Libre/Open Source Software ecosystem. Journal of Internet Services and Applications. Springer.pdf" as renamed by the NameIt tool. 
+Example: "s13174-015-0028-2.pdf" as downloaded from the publisher would become "Teixeira et al. (2015). Lessons learned from applying social network analysis on an industrial Free/Libre/Open Source Software ecosystem. Journal of Internet Services and Applications. Springer.pdf" as renamed by the NameIt tool. 
 
 # Mission # 
 
@@ -91,23 +91,28 @@ NameIt tries to automatically install its dependencies. If it fails, you can try
 `$ NameIt research-articles-collection`
 
 
-* A GUI version for less tech users is forthcoming  <funding needed - funding being appied - new contributors welcome>.
+
 
 # How it works 
 
-First, the tool tries to find pdf's metadata to rename the file. If no metadata is found, it will look on the article first page for a DOI (Digital Object Identifier) and then tries 
+By default, the tool first tries to find pdf's metadata to rename the file. If no metadata is found, it will look on the article first page for a DOI (Digital Object Identifier) and then tries 
 to connect to Internet to retrieve the metadata associated to the DOI. 
 
 If pdf's metadata is not found and the retrieval of metadata via the DOI fails, the tool will still try to find the author, year, title, publication, and publisher from the article 1st page. 
-It looks for the size of the text fonts  to distiguish between what is a title or what is the author imformation and so on, all by using the [LayoutLMv3](https://huggingface.co/docs/transformers/en/model_doc/layoutlmv3) pre-trained multimodal Transformer AI/ML model. 
+It looks for the size of the text fonts  to distinguishes between what is a title or what is the author information and so on, all by using the [LayoutLMv3](https://huggingface.co/docs/transformers/en/model_doc/layoutlmv3) pre-trained multimodal Transformer AI/ML model. 
 
 From more that 100 journal articles downloaded directly from the publishers websites. We could rename 98 without issues.  Author names with no so common accents and articles titles with not so common characters can be problematic.
+
+
+# Future features 
+- A GUI version for less tech users is forthcoming  <funding needed - funding being appied - new contributors welcome>.
+- Support for wildcards (e.g., NameIt folder1/*pdf Elon*.pdf) 
 
 # License #
 
 MIT license. Please acknowledge derivative works. 
 
-# Aknowledgements 
+# Acknowledgements 
 
 * First created by Jose Teixeira <jose.teixeira@abo.fi>
 * First contribuitions by Sukrit 
