@@ -106,7 +106,7 @@ From more that 100 journal articles downloaded directly from the publishers webs
 
 # Future features 
 - A GUI version for less tech users is forthcoming  <funding needed - funding being appied - new contributors welcome>.
-- Support for wildcards (e.g., NameIt folder1/*pdf Elon*.pdf) 
+- Support for wildcards (e.g., NameIt folder1/\*pdf Elon\*.pdf) 
 
 # License #
 
