@@ -4,6 +4,15 @@ NameIt is a software tool that renames research articles in pdf files in a stand
 
 Based on the pdf metadata and on the content of the document first page, it renames the file  with author, year, title, publication, and publisher. 
 
+![PDF](https://img.shields.io/badge/PDF-Renaming-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
+![PDF Tools](https://img.shields.io/badge/PDF-Tools-FF0000?style=for-the-badge&logo=pdf&logoColor=white)
+![PDF Renamer](https://img.shields.io/badge/PDF-Renamer-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
+![Batch Rename](https://img.shields.io/badge/Batch-Rename-00599C?style=for-the-badge&logo=windowsterminal&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+
 # In-and-out
 
 ## INPUT: 
