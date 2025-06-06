@@ -330,11 +330,19 @@ def fetch_metadata_by_doi(doi):
 
 
 # Validate that the author field is a string
-def validate_author(author):
+def validate_author(author:str):
     if not isinstance(author, str):
         logger.error(f"Author is not a string: {author}")
         return False
     return True
+
+# Validate that the author field is a string
+def validate_author_family_name(author_family_name:str):
+    if not isinstance(author_family_name, str):
+        logger.error(f"Author is not a string: {author_family_name}")
+        return False
+    return True
+
 
 
 # Validate that the issued field is a positive integer
@@ -430,7 +438,7 @@ def rename_pdf_file(pdf_file, metadata):
 
     for author in authors:
         logger.info(f"validating author {author}")
-        validate_author(author['family'])
+        validate_author_family_name(author['family'])
 
     author_names = format_author_names(authors)
 
