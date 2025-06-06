@@ -5,7 +5,7 @@ echo ""
 echo "checking if test-data files are there"
 echo "" 
 
-FILE1=test-data/10-1108_JD-08-2021-0148.pdf
+FILE1=test-data/ecis-2025.pdf
 FILE2=test-data/1-s2.0-S030645731831080X-main.pdf
 FILE3=test-data/1-s2.0-S0740818823000130-main.pdf
 FILE4=test-data/document.pdf

@@ -336,13 +336,78 @@ def validate_author(author:str):
         return False
     return True
 
-# Validate that the author field is a string
-def validate_author_family_name(author_family_name:str):
-    if not isinstance(author_family_name, str):
-        logger.error(f"Author is not a string: {author_family_name}")
-        return False
-    return True
 
+import logging
+from typing import Optional
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+
+def validate_author_family_name(author_family_name: str) -> bool:
+    """
+    Validate that the input is a valid author's family name (of a scientific journal article).
+
+    The function checks that:
+    - The input is a non-empty string
+    - The name has at least 3 characters
+    - The name doesn't contain any whitespace
+    - The name contains only letters and common name characters (hyphens, apostrophes)
+    - The name is properly capitalized
+
+    Args:
+        author_family_name: The family name to validate
+
+    Returns:
+        bool: True if the name is valid, False otherwise
+
+    Raises:
+        TypeError: If the input is not a string
+        ValueError: If the name fails any validation checks with specific error messages
+    """
+    # Check if input is a string
+    if not isinstance(author_family_name, str):
+        error_msg = f"Author family name must be a string, got {type(author_family_name)}"
+        logger.error(error_msg)
+        raise TypeError(error_msg)
+
+    # Remove any surrounding whitespace
+    stripped_name = author_family_name.strip()
+
+    # Check for empty string
+    if not stripped_name:
+        error_msg = "Author family name cannot be empty or whitespace only"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # Check minimum length
+    if len(stripped_name) < 3:
+        error_msg = f"Author family name must be at least 3 characters long, got '{stripped_name}'"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # Check for whitespace within the name
+    if any(c.isspace() for c in stripped_name):
+        error_msg = f"Author family name cannot contain whitespace, got '{stripped_name}'"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # Check for invalid characters (only letters and certain punctuation allowed)
+    valid_chars = set("-'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    if not all(c in valid_chars for c in stripped_name):
+        error_msg = f"Author family name contains invalid characters: '{stripped_name}'"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # Check proper capitalization (first character should be uppercase)
+    if not stripped_name[0].isupper():
+        error_msg = f"Author family name should start with an uppercase letter: '{stripped_name}'"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # All checks passed
+    logger.debug(f"Valid author family name: '{stripped_name}'")
+    return True
 
 
 # Validate that the issued field is a positive integer
