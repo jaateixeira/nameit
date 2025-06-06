@@ -6,11 +6,11 @@ echo "checking if test-data files are there"
 echo "" 
 
 FILE1=test-data/ecis-2025.pdf
-FILE2=test-data/s13174-019-0105-z.pdf
-FILE3=test-data/s13174-019-0105-z.pdf
+FILE2=test-data/s13174-015-0028-2.pdf
+FILE3=test-data/s41937-023-00114-x.pdf
 FILE4='test-data/AI Magazine - 2023 - Khan.pdf'
 FILE5=test-data/s13174-015-0028-2.pdf
-FILE6=test-data/s13174-019-0105-z.pdf
+FILE6=test-data/1-s2.0-S2543925123000128-main.pdf
 FILE7=test-data/test.txt
 
 test -f "$FILE1"             && echo "$FILE1 exists." || { echo  "$FILE1 do not exist. "; echo  "ABORTING TESTS" ; exit ;  }
