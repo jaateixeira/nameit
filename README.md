@@ -15,6 +15,7 @@ Based on the pdf metadata and on the content of the document first page, it rena
 ![Cross Ref API](https://img.shields.io/badge/API-Cross%20Ref%20API-orange)
 ![Habanero](https://img.shields.io/badge/Tool-Habanero-brightgreen)
 ![Transformers](https://img.shields.io/badge/🤗-Transformers-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
 ![LayoutLM](https://img.shields.io/badge/LayoutLM-v3-FF6F00?style=for-the-badge&logo=microsoft&logoColor=white)
 ![PDF%20AI](https://img.shields.io/badge/PDF_AI-Structured_Data-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
