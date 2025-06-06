@@ -3,6 +3,27 @@
 NameIt is a software tool that renames research articles in pdf files in a standardised way. 
 
 Based on the pdf metadata and on the content of the document first page, it renames the file  with author, year, title, publication, and publisher. 
+It can extract structured data from PDFs using: (1) pdf meta-data, (2) the CrossRef API, and (3) state-of-the-art layout understanding models.
+
+![PDF](https://img.shields.io/badge/PDF-Renaming-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
+![PDF Tools](https://img.shields.io/badge/PDF-Tools-FF0000?style=for-the-badge&logo=pdf&logoColor=white)
+![PDF Renamer](https://img.shields.io/badge/PDF-Renamer-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
+![Batch Rename](https://img.shields.io/badge/Batch-Rename-00599C?style=for-the-badge&logo=windowsterminal&logoColor=white)
+![Python 3](https://img.shields.io/badge/Python-3-blue)
+![unittest](https://img.shields.io/badge/Testing-unittest-green)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+![REST](https://img.shields.io/badge/API-REST-red)
+![Cross Ref API](https://img.shields.io/badge/API-Cross%20Ref%20API-orange)
+![Habanero](https://img.shields.io/badge/Tool-Habanero-brightgreen)
+![Transformers](https://img.shields.io/badge/🤗-Transformers-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
+![LayoutLM](https://img.shields.io/badge/LayoutLM-v3-FF6F00?style=for-the-badge&logo=microsoft&logoColor=white)
+![PDF%20AI](https://img.shields.io/badge/PDF_AI-Structured_Data-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+![Nightly Tests](https://github.com/your-username/NameIt/workflows/Nightly%20Unit%20Tests/badge.svg)
+
+
+
 
 # In-and-out
 
