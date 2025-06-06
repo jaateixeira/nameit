@@ -1,16 +1,14 @@
 
 
-import argparse
-import os
 import unittest
 
-from rich import print
-from rich.style import Style
-from rich.text import Text
 
+from rich.text import Text
+from rich.console import Console
+from rich.table import Table
 from NameIt import validate_author_family_name  # If renamed to NameIt.py
 
-print("\033[31mRED\033[0m \033[32mGREEN\033[0m")  # Should show colored words
+
 
 
 class ColorfulTestResult(unittest.TextTestResult):

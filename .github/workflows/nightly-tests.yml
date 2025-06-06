@@ -2,28 +2,40 @@ name: Nightly Unit Tests
 
 on:
   schedule:
-    # Runs at 00:00 UTC every day (adjust cron syntax as needed)
+    # Runs at 00:00 UTC every day
     - cron: '0 0 * * *'
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
   test:
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
-        python-version: '3.x'  # or your specific version
+        python-version: ${{ matrix.python-version }}
         
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install unittest2  # Only if you need this
+        # Add any other dependencies your tests need here
         
     - name: Run unit tests
       run: |
-        cd unit-tests  # Assuming your tests are in a unit-tests directory
+        cd unit-tests  # Change this if your tests are in a different directory
         python -m unittest discover -v
+      
+    - name: Upload test results
+      if: always()  # Upload results even if tests fail
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          unit-tests/test-reports/
+          !unit-tests/test-reports/.gitkeep
