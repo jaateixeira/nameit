@@ -6,6 +6,9 @@ import string
 import subprocess
 import sys
 import unicodedata
+
+import magic
+
 # 4 Dynamic module loading
 from typing import Optional, Any
 
@@ -116,14 +119,12 @@ logger.add(sys.stderr, level="INFO")
 console = Console()
 
 
-def is_pdf_file(file_path):
-    """Check if the file is a PDF by reading its magic number."""
-    try:
-        with open(file_path, 'rb') as f:
-            header = f.read(5).decode('ascii', errors='ignore')
-            return header == '%PDF-'
-    except (IOError, UnicodeDecodeError):
-        return False
+
+
+def is_pdf_file(file_path: str) -> bool:
+    mime = magic.from_file(file_path, mime=True)
+    return mime == 'application/pdf'
+
 
 def validate_no_wildcards(path:str):
     if re.search(r'[\*\?\[\]]', path):

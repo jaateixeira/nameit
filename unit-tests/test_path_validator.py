@@ -11,18 +11,70 @@ from NameIt import valid_path  # If renamed to NameIt.py
 print("\033[31mRED\033[0m \033[32mGREEN\033[0m")  # Should show colored words
 
 
-class RichTestResult(unittest.TextTestResult):
+
+import unittest
+from rich import print
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
+from rich.style import Style
+
+class ColorfulTestResult(unittest.TextTestResult):
+    """Custom test result class with rich colorized output"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.console = Console()
+        self.test_table = Table(title="Test Results", show_header=True, header_style="bold magenta")
+        self.test_table.add_column("Test", style="cyan")
+        self.test_table.add_column("Status", justify="right")
+        self.test_table.add_column("Time", justify="right")
+        self.test_table.add_column("Details", style="yellow")
+
+    def startTest(self, test):
+        super().startTest(test)
+        self._test_start_time = time.time()
+
     def addSuccess(self, test):
         super().addSuccess(test)
-        print(Text(f"✓ {test._testMethodName}", style="bold green"))
+        elapsed = time.time() - self._test_start_time
+        self.test_table.add_row(
+            str(test),
+            Text("PASS", style="bold green"),
+            f"{elapsed:.3f}s",
+            ""
+        )
 
     def addFailure(self, test, err):
         super().addFailure(test, err)
-        print(Text(f"✗ {test._testMethodName} failed: {err[1]}", style="bold red"))
+        elapsed = time.time() - self._test_start_time
+        self.test_table.add_row(
+            str(test),
+            Text("FAIL", style="bold red"),
+            f"{elapsed:.3f}s",
+            str(err[1])
+        )
 
     def addError(self, test, err):
         super().addError(test, err)
-        print(Text(f"⚠ {test._testMethodName} errored: {err[1]}", style="bold yellow"))
+        elapsed = time.time() - self._test_start_time
+        self.test_table.add_row(
+            str(test),
+            Text("ERROR", style="bold white on red"),
+            f"{elapsed:.3f}s",
+            str(err[1])
+        )
+
+    def printErrors(self):
+        """Print all errors in a rich formatted way"""
+        self.console.print(self.test_table)
+        
+        if self.failures or self.errors:
+            print("\n[bold]Failure Details:[/bold]")
+            for test, err in self.failures + self.errors:
+                print(f"\n[red]FAIL: {test.id()}[/red]")
+                print(f"[yellow]{err}[/yellow]")
+                
+
 
 class TestPathValidator(unittest.TestCase):
     def setUp(self):
@@ -187,16 +239,76 @@ class TestPathValidator(unittest.TestCase):
 
 
 
+
+class ColorfulTestResult(unittest.TextTestResult):
+    """Custom test result class with rich colorized output"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.console = Console()
+        self.test_table = Table(title="Test Results", show_header=True, header_style="bold magenta")
+        self.test_table.add_column("Test", style="cyan")
+        self.test_table.add_column("Status", justify="right")
+        self.test_table.add_column("Time", justify="right")
+        self.test_table.add_column("Details", style="yellow")
+
+    def startTest(self, test):
+        super().startTest(test)
+        self._test_start_time = time.time()
+
+    def addSuccess(self, test):
+        super().addSuccess(test)
+        elapsed = time.time() - self._test_start_time
+        self.test_table.add_row(
+            str(test),
+            Text("PASS", style="bold green"),
+            f"{elapsed:.3f}s",
+            ""
+        )
+
+    def addFailure(self, test, err):
+        super().addFailure(test, err)
+        elapsed = time.time() - self._test_start_time
+        self.test_table.add_row(
+            str(test),
+            Text("FAIL", style="bold red"),
+            f"{elapsed:.3f}s",
+            str(err[1])
+        )
+
+    def addError(self, test, err):
+        super().addError(test, err)
+        elapsed = time.time() - self._test_start_time
+        self.test_table.add_row(
+            str(test),
+            Text("ERROR", style="bold white on red"),
+            f"{elapsed:.3f}s",
+            str(err[1])
+        )
+
+    def printErrors(self):
+        """Print all errors in a rich formatted way"""
+        self.console.print(self.test_table)
+        
+        if self.failures or self.errors:
+            print("\n[bold]Failure Details:[/bold]")
+            for test, err in self.failures + self.errors:
+                print(f"\n[red]FAIL: {test.id()}[/red]")
+                print(f"[yellow]{err}[/yellow]")
+
+# Usage
 if __name__ == "__main__":
-    # Print a header for clarity
-    from rich.console import Console
-    console = Console()
-    console.rule("[bold]Running Unit Tests")
-
-    # Run tests with rich-colored output
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestPathValidator)
-    runner = unittest.TextTestRunner(resultclass=RichTestResult, verbosity=2)
+    import time
+    from rich import print
+    
+    # Create test suite
+    loader = unittest.TestLoader()
+    suite = loader.discover('tests')
+    
+    # Run with colorful output
+    runner = unittest.TextTestRunner(
+        resultclass=ColorfulTestResult,
+        verbosity=3,
+        descriptions=True
+    )
     runner.run(suite)
-
-    # Print a summary footer
-    console.rule("[bold]Test Summary")
+    
