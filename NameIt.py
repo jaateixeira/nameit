@@ -343,17 +343,24 @@ from typing import Optional
 # Set up logging
 logger = logging.getLogger(__name__)
 
+import logging
+import unicodedata
+import unittest
+from typing import Set
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
 
 def validate_author_family_name(author_family_name: str) -> bool:
     """
-    Validate that the input is a valid author's family name (of a scientific journal article).
+    Validate that the input is a valid scientific journal article author's family name.
 
     The function checks that:
     - The input is a non-empty string
-    - The name has at least 3 characters
-    - The name doesn't contain any whitespace
-    - The name contains only letters and common name characters (hyphens, apostrophes)
-    - The name is properly capitalized
+    - The name has at least 2 characters (allowing for short names like "Li")
+    - The name contains only valid name characters (letters, spaces, hyphens, apostrophes, and accented chars)
+    - Each part of the name is properly capitalized (e.g., "de Van", "von Müller")
 
     Args:
         author_family_name: The family name to validate
@@ -380,30 +387,46 @@ def validate_author_family_name(author_family_name: str) -> bool:
         logger.error(error_msg)
         raise ValueError(error_msg)
 
-    # Check minimum length
-    if len(stripped_name) < 3:
-        error_msg = f"Author family name must be at least 3 characters long, got '{stripped_name}'"
+    # Check minimum length (reduced to 2 to accommodate names like "Li")
+    if len(stripped_name.replace(" ", "")) < 2:
+        error_msg = f"Author family name must have at least 2 non-space characters, got '{stripped_name}'"
         logger.error(error_msg)
         raise ValueError(error_msg)
 
-    # Check for whitespace within the name
-    if any(c.isspace() for c in stripped_name):
-        error_msg = f"Author family name cannot contain whitespace, got '{stripped_name}'"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
+    # Check for invalid characters
+    valid_categories = {'Ll', 'Lu', 'Lt', 'Lo', 'Lm', 'Mn', 'Mc', 'Nd'}
+    valid_punctuation = {"-", "'", " "}  # Added space as valid
 
-    # Check for invalid characters (only letters and certain punctuation allowed)
-    valid_chars = set("-'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-    if not all(c in valid_chars for c in stripped_name):
-        error_msg = f"Author family name contains invalid characters: '{stripped_name}'"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
+    for c in stripped_name:
+        # Allow standard name punctuation and spaces
+        if c in valid_punctuation:
+            continue
 
-    # Check proper capitalization (first character should be uppercase)
-    if not stripped_name[0].isupper():
-        error_msg = f"Author family name should start with an uppercase letter: '{stripped_name}'"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
+        # Check Unicode character categories
+        cat = unicodedata.category(c)
+        if cat not in valid_categories:
+            error_msg = f"Author family name contains invalid character '{c}' in name '{stripped_name}'"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
+    # Check proper capitalization for each part of the name
+    name_parts = stripped_name.split()
+    for part in name_parts:
+        # Skip empty parts (shouldn't happen due to earlier checks)
+        if not part:
+            continue
+
+        # Special handling for prefixes like "de", "van", "von" (optional)
+        lowercase_prefixes = {"de", "van", "von", "di", "del", "della"}
+        if part.lower() in lowercase_prefixes:
+            continue
+
+        # Check if the first alphabetic character is uppercase
+        first_letter = next((c for c in part if c.isalpha()), None)
+        if first_letter and not first_letter.isupper():
+            error_msg = f"Name part '{part}' should start with an uppercase letter: '{stripped_name}'"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
     # All checks passed
     logger.debug(f"Valid author family name: '{stripped_name}'")
