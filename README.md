@@ -3,6 +3,7 @@
 NameIt is a software tool that renames research articles in pdf files in a standardised way. 
 
 Based on the pdf metadata and on the content of the document first page, it renames the file  with author, year, title, publication, and publisher. 
+It can extract structured data from PDFs using: (1) pdf meta-data, (2) the CrossRef API, and (3) state-of-the-art layout understanding models.
 
 ![PDF](https://img.shields.io/badge/PDF-Renaming-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
 ![PDF Tools](https://img.shields.io/badge/PDF-Tools-FF0000?style=for-the-badge&logo=pdf&logoColor=white)
@@ -21,7 +22,7 @@ Based on the pdf metadata and on the content of the document first page, it rena
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
 
-Extract structured data from PDFs using state-of-the-art layout understanding models.
+
 
 # In-and-out
 
