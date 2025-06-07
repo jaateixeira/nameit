@@ -20,9 +20,13 @@ It can extract structured data from PDFs using: (1) pdf meta-data, (2) the Cross
 ![LayoutLM](https://img.shields.io/badge/LayoutLM-v3-FF6F00?style=for-the-badge&logo=microsoft&logoColor=white)
 ![PDF%20AI](https://img.shields.io/badge/PDF_AI-Structured_Data-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+
+
+## Build Status
+
+[![Nightly Tests](https://github.com/.../nightly.yml/badge.svg?event=schedule)](...) 
+[![Regular Tests](https://github.com/.../tests.yml/badge.svg)](...)
 ![Nightly Tests](https://github.com/your-username/NameIt/workflows/Nightly%20Unit%20Tests/badge.svg)
-
-
 
 
 # In-and-out
