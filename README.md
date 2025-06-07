@@ -24,6 +24,7 @@ It can extract structured data from PDFs using: (1) pdf meta-data, (2) the Cross
 
 ## Build Status
 
+![CI Tests on push, pull_request](https://github.com/jaateixeira/nameit/actions/workflows/tests.yml/badge.svg)](https://github.com/jaateixeira/nameit/actions/workflows/tests.yml)
 ![Nightly Tests](https://github.com/jaateixeira/NameIt/workflows/Nightly%20Unit%20Tests/badge.svg)
 
 
