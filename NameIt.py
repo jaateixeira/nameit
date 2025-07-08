@@ -7,7 +7,11 @@ import subprocess
 import sys
 import unicodedata
 
+# For file type identification and MIME type detection
+# Ensures we are dealing with pdf files
 import magic
+
+
 
 # 4 Dynamic module loading
 from typing import Optional, Any

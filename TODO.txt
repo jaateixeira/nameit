@@ -1,5 +1,8 @@
 TODO ASAP
 
+Make it work with crossref first (nameit -c )
+
+
 Fix night build action
 Fix all errors / fails
 Add more test on Journal Name
