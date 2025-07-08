@@ -1,5 +1,8 @@
 TODO ASAP
 
+use loggetr
+use validators
+datamodel
 Make it work with crossref first (nameit -c )
 
 
