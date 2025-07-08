@@ -1,8 +1,7 @@
 TODO ASAP
 
-use loggetr
-use validators
-datamodel
+
+Develop datamodel based on data_validation
 Make it work with crossref first (nameit -c )
 
 

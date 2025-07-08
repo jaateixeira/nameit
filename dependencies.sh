@@ -22,3 +22,4 @@ pip3 install python-magic
 pip3 install python-magic
 pip3 install pymupdf
 pip3 install CrossRef
+pip3 install nameparser
