@@ -21,3 +21,4 @@ brew reinstall libmagic
 pip3 install python-magic
 pip3 install python-magic
 pip3 install pymupdf
+pip3 install CrossRef
