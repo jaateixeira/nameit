@@ -16,7 +16,7 @@ import magic
 from typing import Optional, Any
 
 
-from utils.unified_logger import console, logger
+-a -
 from NameItCrossRef import extract_doi_from_pdf
 
 

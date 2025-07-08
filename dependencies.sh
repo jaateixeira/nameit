@@ -19,3 +19,5 @@ pip3 install modules
 pip3 install libmagic
 brew reinstall libmagic
 pip3 install python-magic
+pip3 install python-magic
+pip3 install pymupdf
