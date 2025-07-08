@@ -11,3 +11,8 @@ pip3 install varname --break-system packages
 sudo apt-get install python3-coverage
 pip3 install fitz
 pip3 install frontend
+
+mkdir static
+
+pip3 install tools
+pip3 install modules
