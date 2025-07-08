@@ -8,3 +8,4 @@ pip3 install blosc2 --break-system-package
 pip3 install transformers --break-system packages
 pip3 install torch --break-system packages
 pip3 install varname --break-system packages
+sudo apt-get install python3-coverage

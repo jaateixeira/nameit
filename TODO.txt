@@ -1,3 +1,12 @@
+TODO ASAP
+
+Fix night build action
+Fix all errors / fails
+Add more test on Journal Name
+Deliver to pypy rep
+Release 1
+OSS journals 
+
 Features list
 
 * separate the three modes of operation
@@ -8,6 +17,7 @@ Features list
 * Maybe a feature to extract bibliography directly into a text file or LATEX or BibTex
 * GUI based tool for Windows, Mac and Linux
 * Suport wildcards
+* Support for conference proceddings
 
 * Support rename with git -mv . This is usefull for people working within repositories
 
