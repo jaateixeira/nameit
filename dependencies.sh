@@ -9,3 +9,4 @@ pip3 install transformers --break-system packages
 pip3 install torch --break-system packages
 pip3 install varname --break-system packages
 sudo apt-get install python3-coverage
+pip3 install fitz
