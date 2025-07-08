@@ -16,3 +16,5 @@ mkdir static
 
 pip3 install tools
 pip3 install modules
+pip3 install libmagic
+brew reinstall libmagic
