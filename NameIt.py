@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Pep 8 - suggests standard imports first, then third-party libraries, then local imports.
 
 import importlib
 import re
@@ -17,100 +19,8 @@ from typing import Optional, Any
 
 
 from NameItCrossRef import extract_metadata_from_crossref_using_doi_in_pdf
-from utils.unified_logger import  logger
+from utils.unified_logger import logger
 from utils.unified_console import console
-
-
-class ModuleLoader:
-    """A class to handle conditional module loading with rich feedback."""
-
-    def __init__(self):
-        self.loaded_modules = {}
-
-    def load(
-            self,
-            module_name: str,
-            package: Optional[str] = None,
-            alias: Optional[str] = None,
-            required_for: Optional[str] = None
-    ) -> Any:
-        """
-        Load a module with rich error handling.
-
-        Args:
-            module_name: Name of module to import
-            package: Package name if different from module
-            alias: Alternate name to store in loaded_modules
-            required_for: Feature that requires this module
-
-        Returns:
-            The imported module or None
-        """
-        try:
-            module = importlib.import_module(module_name)
-            key = alias or module_name
-            self.loaded_modules[key] = module
-
-            if package:
-                console.print(f"✓ [green]Successfully loaded [bold]{module_name}[/] from {package}[/]")
-            else:
-                console.print(f"✓ [green]Successfully loaded [bold]{module_name}[/][/]")
-
-            return module
-        except ImportError as e:
-            error_msg = f"✗ [red]Failed to load [bold]{module_name}[/]"
-            if required_for:
-                error_msg += f" (required for {required_for})"
-            error_msg += f"\n    → Install with: [cyan]pip install {package or module_name}[/]"
-
-            console.print(e, error_msg)
-            return None
-
-
-# Initialize the loader
-loader = ModuleLoader()
-
-
-def load_pdf_module() -> bool:
-    """Load PDF processing modules."""
-    if not loader.load("fitz", package="pymupdf", required_for="PDF processing"):
-        return False
-
-    global fitz
-    fitz = loader.loaded_modules['fitz']
-    return True
-
-
-def load_crossref_module() -> bool:
-    """Load Crossref API client."""
-    if not loader.load("habanero", required_for="Crossref API access"):
-        return False
-
-    global Crossref
-    Crossref = loader.loaded_modules['habanero'].Crossref
-    return True
-
-
-def load_layoutlm_modules() -> bool:
-    """Load LayoutLM and dependencies."""
-    success = True
-
-    if not loader.load("transformers", required_for="LayoutLM processing"):
-        success = False
-    if not loader.load("PIL", package="pillow", required_for="Image processing"):
-        success = False
-    if not loader.load("torch", required_for="PyTorch operations"):
-        success = False
-
-    if success:
-        global LayoutLMv3Processor, LayoutLMv3ForTokenClassification, Image, torch
-        LayoutLMv3Processor = loader.loaded_modules['transformers'].LayoutLMv3Processor
-        LayoutLMv3ForTokenClassification = loader.loaded_modules['transformers'].LayoutLMv3ForTokenClassification
-        Image = loader.loaded_modules['PIL'].Image
-        torch = loader.loaded_modules['torch']
-
-    return success
-
 
 def is_pdf_file(file_path: str) -> bool:
     mime = magic.from_file(file_path, mime=True)
@@ -241,49 +151,6 @@ def remove_invalid_characters(text):
     return cleaned_text
 
 
-def extract_info_from_pdf(pdf_path):
-    # Load the PDF
-    doc = fitz.open(pdf_path)
-    page = doc.load_page(0)  # Load the first page
-    pix = page.get_pixmap()
-    image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-
-    # Load the LayoutLMv3 model and processor
-    processor = LayoutLMv3Processor.from_pretrained("microsoft/layoutlmv3-base")
-    model = LayoutLMv3ForTokenClassification.from_pretrained("microsoft/layoutlmv3-base")
-
-    # Process the image
-    encoding = processor(image, return_tensors="pt")
-
-    # Perform inference
-    with torch.no_grad():
-        outputs = model(**encoding)
-
-    # Decode the predictions
-    predictions = outputs.logits.argmax(-1).squeeze().tolist()
-    tokens = encoding.tokens()
-
-    # Extract relevant information
-    info = {
-        "author": "",
-        "journal": "",
-        "year": "",
-        "title": ""
-    }
-
-    current_key = None
-    for token, pred in zip(tokens, predictions):
-        if token in info.keys():
-            current_key = token
-        elif current_key:
-            info[current_key] += token + " "
-
-    # Clean up the extracted information
-    for key in info:
-        info[key] = info[key].strip()
-
-    return info
-
 
 # Validate that the author field is a string
 def validate_author(author:str):
@@ -291,22 +158,6 @@ def validate_author(author:str):
         logger.error(f"Author is not a string: {author}")
         return False
     return True
-
-
-import logging
-from typing import Optional
-
-# Set up logging
-logger = logging.getLogger(__name__)
-
-import logging
-import unicodedata
-import unittest
-from typing import Set
-
-# Set up logging
-logger = logging.getLogger(__name__)
-
 
 def validate_author_family_name(author_family_name: str) -> bool:
     """
@@ -604,15 +455,13 @@ if __name__ == "__main__":
     console.print(f"{args=}")
 
     if args.use_pdf_metadata:
-        load_pdf_module()
+        console.print("\n [bold green].Taking pdf metadata in consideration")
     if args.use_crossref:
-        "pdf module needed to find DOIs to call the Crossref API"
-        load_pdf_module()
-        load_crossref_module()
-    if args.use_layoutlmv3:
-        load_layoutlm_modules()
+        console.print("\n [bold green].Attempting to find DOIs to call the Crossref API")
 
-    console.print("\n [bold green]. Checking internet connection")
+    if args.use_layoutlmv3:
+        console.print("\n [bold green]. Using LayoutLMv3 to find the required informationatus"
+                      "")
 
     if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
         console.print(
