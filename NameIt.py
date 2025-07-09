@@ -585,8 +585,7 @@ def process_folder(folder_path):
         for file in files:
             if file.endswith(".pdf"):
                 pdf_file = os.path.join(root, file)
-                metadata = extract_metadata_from_pdf(pdf_file)
-
+                metadata = extract_metadata_from_crossref_using_doi_in_pdf(file)
                 if metadata:
                     new_file_name = rename_pdf_file(pdf_file, metadata)
                     if new_file_name:
