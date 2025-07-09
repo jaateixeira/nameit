@@ -49,6 +49,7 @@ from rich.table import Table
 from rich.live import Live
 
 # Install the Rich Traceback handler with custom options
+"""
 traceback.install(
     show_locals=True,  # Show local variables in the traceback
     locals_max_length=10, locals_max_string=80, locals_hide_dunder=True, locals_hide_sunder=False,
@@ -63,7 +64,7 @@ traceback.install(
     theme="solarized-dark",  # Use a different color theme
     word_wrap=True,  # Enable word wrapping for long lines
 )
-
+"""
 # Strings may contain Console Markup which can be used to insert color and styles in to the output.
 
 pretty.install()
@@ -91,6 +92,7 @@ from rich.progress import Progress, TaskID
 from rich import traceback
 
 # Install the Rich Traceback handler with custom options
+"""
 traceback.install(
     show_locals=True,  # Show local variables in the traceback
     locals_max_length=10, locals_max_string=80, locals_hide_dunder=True, locals_hide_sunder=False,
@@ -105,6 +107,7 @@ traceback.install(
     theme="solarized-dark",  # Use a different color theme
     word_wrap=True,  # Enable word wrapping for long lines
 )
+"""
 
 """
 This module  provides unified functions for stdout and a logger for all python scripts from the ScrapLogGit2Net family

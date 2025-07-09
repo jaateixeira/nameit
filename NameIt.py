@@ -16,8 +16,9 @@ import magic
 from typing import Optional, Any
 
 
-from NameItCrossRef import extract_doi_from_pdf
-from utils.unified_logger import  console, logger
+from NameItCrossRef import extract_metadata_from_crossref_using_doi_in_pdf
+from utils.unified_logger import  logger
+from utils.unified_console import console
 
 
 class ModuleLoader:
@@ -560,7 +561,7 @@ def process_folder_or_file(path: str, args: argparse.Namespace) -> None:
         # Verify at least one processing method is specified
         if args.use_pdf_metadata or args.use_crossref or args.use_layoutlmv3:
             pdf_file = path
-            metadata = extract_doi_from_pdf(pdf_file)
+            metadata = extract_metadata_from_crossref_using_doi_in_pdf(pdf_file)
         else:
             console.print("[red]Method not known.[/red]")
             console.print("[blue]Are you sure you don't want to use pdf metadata? "

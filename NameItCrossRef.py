@@ -9,7 +9,8 @@ import fitz  # PyMuPDF
 
 from habanero import Crossref
 
-def extract_doi_from_pdf(pdf_file: str) -> Optional[Dict]:
+
+def extract_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Optional[Dict]:
         """
         Extract metadata from a PDF file by identifying the DOI on the first page and fetching its metadata.
 
@@ -24,6 +25,8 @@ def extract_doi_from_pdf(pdf_file: str) -> Optional[Dict]:
             with fitz.open(pdf_file) as pdf_document:
                 first_page = pdf_document[0]
                 text = first_page.get_text("text")
+
+            console.print(f"Looking for a DOI in the first page of the {pdf_file} pdf file")
 
             # Define the DOI pattern
             doi_pattern = r'10[.][\d.]{1,15}\/[-._;:()\/A-Za-z0-9<>]+[A-Za-z0-9]'

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Pep 8 - suggests standard imports first, then third-party libraries, then local imports.
 
-from unified_console import console
+from utils.unified_console import console
 from loguru import logger
 from rich import print as rprint
 from rich.logging import RichHandler
