@@ -3,12 +3,13 @@ import os
 import argparse
 import sys
 
+import unicode
 import magic
 
 from nameparser import HumanName
 
-from unified_console import console
-from unified_logger import logger
+from utils.unified_console import console
+from utils.unified_logger import logger
 
 
 def validate_first_name(name: str) -> bool:
