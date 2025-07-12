@@ -21,6 +21,7 @@ from typing import Optional, Any
 from NameItCrossRef import extract_metadata_from_crossref_using_doi_in_pdf
 from utils.unified_logger import logger
 from utils.unified_console import console
+from models.exceptions import InvalidNameItPath
 
 def is_pdf_file(file_path: str) -> bool:
     mime = magic.from_file(file_path, mime=True)
@@ -97,10 +98,6 @@ def valid_path(path_to_rename: str) -> str:
         )
 
     return path_to_rename
-
-class InvalidNameItPath(Exception):
-    def __init__(self, path):
-        super().__init__(f"Directory  or file '{path}' is invalid. \n Is it a pdf file or a folder with pdf files?")
 
 
 def parse_arguments():
