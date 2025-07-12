@@ -1,5 +1,11 @@
-from nameparser import HumanName
 from typing import Optional, Dict, List
+import os
+import argparse
+
+import magic
+
+from nameparser import HumanName
+
 
 def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""
@@ -69,16 +75,84 @@ def validate_publication(publication: Dict) -> Dict:
 
     return errors
 
-# Example usage
-publication_data = {
+
+def is_pdf_file(file_path: str) -> bool:
+    mime = magic.from_file(file_path, mime=True)
+    return mime == 'application/pdf'
+
+
+def valid_path(path_to_rename: str) -> str:
+    """
+    Validate that the path_to_rename exists, is a file/directory, and meets PDF/directory constraints.
+
+    Ensures:
+    1. No wildcards (e.g., `*.pdf`) are present.
+    2. The path_to_rename exists on the filesystem.
+    3. If a file, it has a `.pdf` extension and a valid PDF header.
+    4. If a directory, it is not empty.
+
+    Args:
+        path_to_rename (str): Input path_to_rename to validate.
+
+    Returns:
+        str: The validated path_to_rename if all checks pass.
+
+    Raises:
+        argparse.ArgumentTypeError: If any validation fails, with a descriptive message.
+    """
+    # --- Step 1: Reject wildcards ---
+    if any(char in path_to_rename for char in '*?[]'):
+        raise argparse.ArgumentTypeError(
+            f"Wildcards (*, ?, []) are not allowed in path_to_rename: '{path_to_rename}'. "
+            "Provide a literal path_to_rename or quote the argument (e.g., \"*.pdf\")."
+        )
+
+    # --- Step 2: Check existence ---
+    if not os.path.exists(path_to_rename):
+        raise argparse.ArgumentTypeError(f"path_to_rename '{path_to_rename}' does not exist.")
+
+    # --- Step 3: Validate files ---
+    if os.path.isfile(path_to_rename):
+        # Check extension
+        if not path_to_rename.lower().endswith('.pdf'):
+            raise argparse.ArgumentTypeError(
+                f"File '{path_to_rename}' is not a PDF (expected '.pdf' extension)."
+            )
+        # Check PDF magic number
+        if not is_pdf_file(path_to_rename):
+            raise argparse.ArgumentTypeError(
+                f"File '{path_to_rename}' is not a valid PDF (missing '%PDF-' header)."
+            )
+
+    # --- Step 4: Validate directories ---
+    elif os.path.isdir(path_to_rename):
+        if not os.listdir(path_to_rename):
+            raise argparse.ArgumentTypeError(
+                f"Directory '{path_to_rename}' is empty. Provide a non-empty directory."
+            )
+
+    # --- Step 5: Reject invalid types (e.g., symlinks, devices) ---
+    else:
+        raise argparse.ArgumentTypeError(
+            f"path_to_rename '{path_to_rename}' is neither a file nor a directory."
+        )
+
+    return path_to_rename
+
+
+
+if __name__ == "__main__":
+
+    # Example usage
+    publication_data = {
     "authors": [{"full_name": "Dr. John von Doe Jr."}, {"full_name": "Jane Smith"}],
     "year": 2022,
     "title": "An Example Title",
     "journal": "Journal of Examples"
-}
+    }
 
-validation_errors = validate_publication(publication_data)
-if not validation_errors:
-    print("Publication data is valid.")
-else:
-    print("Validation errors:", validation_errors)
+    validation_errors = validate_publication(publication_data)
+    if not validation_errors:
+        print("Publication data is valid.")
+    else:
+        print("Validation errors:", validation_errors)
