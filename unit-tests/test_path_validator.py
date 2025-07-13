@@ -164,7 +164,7 @@ class TestPathValidator(unittest.TestCase):
         path = os.path.join(self.test_data_dir, "whitespace_header.pdf")
         with open(path, "wb") as f:
             f.write(b"  \n%PDF-valid")  # Whitespace allowed
-        self.assertEqual(self.valid_path_wrapper, path)  # Should pass
+        self.assertEqual(self.valid_path_wrapper(path), path)  # Should pass
 
     def test_pdf_header_not_at_start(self):
         """Reject PDF where '%PDF-' appears after byte 0."""
@@ -229,7 +229,7 @@ class TestPathValidator(unittest.TestCase):
         path = os.path.join(self.test_data_dir, "versioned.pdf")
         with open(path, "wb") as f:
             f.write(b"%PDF-1.4\nvalid")
-        self.assertEqual(self.valid_path_wrapper, path)
+        self.assertEqual(self.valid_path_wrapper(path), path)
 
     def test_pdf_with_binary_garbage(self):
         """Reject PDF with binary data before header."""
@@ -261,9 +261,6 @@ class TestPathValidator(unittest.TestCase):
         # Valid PDF
         args = parser.parse_args(["--file", self.valid_pdf])
         self.assertEqual(args.file, self.valid_pdf)
-
-
-
 
         # Invalid PDF
         with self.assertRaises(SystemExit):  # argparse exits on error
