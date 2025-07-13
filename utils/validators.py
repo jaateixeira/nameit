@@ -105,6 +105,7 @@ def valid_path(path_to_rename: str) -> str:
     2. The path_to_rename exists on the filesystem.
     3. If a file, it has a `.pdf` extension and a valid PDF header.
     4. If a directory, it is not empty.
+    5. If a file, it has at least 5KB <- otherwise sould
 
     Args:
         path_to_rename (str): Input path_to_rename to validate.
@@ -115,6 +116,9 @@ def valid_path(path_to_rename: str) -> str:
     Raises:
         argparse.ArgumentTypeError: If any validation fails, with a descriptive message.
     """
+
+    print(f"UnitTest - Testing valid_path with path_to_rename={path_to_rename}")
+
     # --- Step 1: Reject wildcards ---
     if any(char in path_to_rename for char in '*?[]'):
         raise argparse.ArgumentTypeError(
@@ -138,6 +142,18 @@ def valid_path(path_to_rename: str) -> str:
             raise argparse.ArgumentTypeError(
                 f"File '{path_to_rename}' is not a valid PDF (missing '%PDF-' header)."
             )
+        # Check file size is at minimum 5KB
+
+        min_pdf_file_size_in_kb = 5
+
+        file_size_in_kb = os.path.getsize(path_to_rename) / 1024
+
+        print(f"UnitTest - file size of path_to_rename={path_to_rename} is {file_size_in_kb} KB")
+
+        if file_size_in_kb t < min_pdf_file_size_in_kb:
+            raise argparse.ArgumentTypeError(
+                f"File '{path_to_rename}' seems took small to be a valid PDF article "
+                f"( {file_size_in_kb} < { min_pdf_file_size_in_kb}KB).")
 
     # --- Step 4: Validate directories ---
     elif os.path.isdir(path_to_rename):
@@ -192,7 +208,7 @@ def validate_author_family_name(author_family_name: str) -> bool:
 
     # check that there are no digits in the names
 
-    digits = {'1','2','3','4','5','6','7','8','9','0'}
+    digits = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
 
     for digit in digits:
         if digit in stripped_name:
@@ -268,8 +284,6 @@ def validate_publisher(publisher):
         logger.error(f"Publisher is not a string: {publisher}")
         return False
     return True
-
-
 
 
 # Validate that the fetched metadata contains the required information
