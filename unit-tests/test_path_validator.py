@@ -180,7 +180,6 @@ class TestPathValidator(unittest.TestCase):
         symlink_path = os.path.join(self.test_data_dir, "valid_link.pdf")
         self.assertEqual(self.valid_path_wrapper(symlink_path), symlink_path)  # Should resolve
 
-    @unittest.skip("Temporarily disabled - for allowing GitHub Action CI/CD pipeline")
     def test_symlink_to_invalid_pdf(self):
         """Reject symlink pointing to an invalid PDF."""
         invalid_path = os.path.join(self.test_data_dir, "invalid_link_target.pdf")
@@ -188,7 +187,7 @@ class TestPathValidator(unittest.TestCase):
             f.write(b"NOT_A_PDF")
 
         symlink_path = os.path.join(self.test_data_dir, "invalid_link.pdf")
-        os.symlink(invalid_path, symlink_path)
+log
         with self.assertRaises(argparse.ArgumentTypeError):
             valid_path(symlink_path)
 
