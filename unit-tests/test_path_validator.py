@@ -262,6 +262,9 @@ class TestPathValidator(unittest.TestCase):
         args = parser.parse_args(["--file", self.valid_pdf])
         self.assertEqual(args.file, self.valid_pdf)
 
+
+
+
         # Invalid PDF
         with self.assertRaises(SystemExit):  # argparse exits on error
             parser.parse_args(["--file", self.invalid_pdf])
