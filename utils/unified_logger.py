@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 # Pep 8 - suggests standard imports first, then third-party libraries, then local imports.
 
-from utils.unified_console import console
+
 from loguru import logger
 from rich import print as rprint
 from rich.logging import RichHandler
+
+from utils.unified_console import console
 
 # Remove the default logger
 logger.remove()
@@ -36,6 +38,19 @@ def log_messages() -> None:
     logger.warning("This is a warning message.")
     logger.error("This is an error message.")
     logger.critical("This is a critical message.")
+
+
+    # logging exception with logger.error() with full traceback
+    try:
+        1 + "1"
+    except Exception as e:
+        logger.error("Error message", stack_info=True, exc_info=True)
+
+    # logging just the exception
+    try:
+        1 + "1"
+    except Exception as e:
+        logger.exception(e)
 
     rprint("\n")
     return None
