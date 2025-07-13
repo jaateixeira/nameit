@@ -2,42 +2,37 @@
 # -*- coding: utf-8 -*-
 # Pep 8 - suggests standard imports first, then third-party libraries, then local imports.
 
-import importlib
 import re
 import string
 import subprocess
 import sys
+import os
+import argparse
 import unicodedata
 
 # For file type identification and MIME type detection
 # Ensures we are dealing with pdf files
 import magic
 
-
 # 4 Dynamic module loading
 from typing import Optional, Any
-
 
 from NameItCrossRef import extract_metadata_from_crossref_using_doi_in_pdf
 from utils.unified_logger import logger
 from utils.unified_console import console
+
 
 def is_pdf_file(file_path: str) -> bool:
     mime = magic.from_file(file_path, mime=True)
     return mime == 'application/pdf'
 
 
-def validate_no_wildcards(path:str):
+def validate_no_wildcards(path: str):
     if re.search(r'[\*\?\[\]]', path):
         raise argparse.ArgumentTypeError("Wildcards (*, ?, []) are not allowed. Provide a literal path.")
     if not os.path.exists(path):
         raise argparse.ArgumentTypeError(f"Path '{path}' does not exist.")
     return path
-
-
-import os
-import argparse
-
 
 
 def valid_path(path_to_rename: str) -> str:
@@ -98,8 +93,13 @@ def valid_path(path_to_rename: str) -> str:
 
     return path_to_rename
 
+
 class InvalidNameItPath(Exception):
     def __init__(self, path):
+        """
+
+        @type path: object
+        """
         super().__init__(f"Directory  or file '{path}' is invalid. \n Is it a pdf file or a folder with pdf files?")
 
 
@@ -151,13 +151,13 @@ def remove_invalid_characters(text):
     return cleaned_text
 
 
-
 # Validate that the author field is a string
-def validate_author(author:str):
+def validate_author(author: str):
     if not isinstance(author, str):
         logger.error(f"Author is not a string: {author}")
         return False
     return True
+
 
 def validate_author_family_name(author_family_name: str) -> bool:
     """
@@ -374,9 +374,6 @@ def rename_pdf_file(pdf_file, metadata):
     return new_filename
 
 
-import argparse
-import os
-
 
 def process_folder_or_file(path: str, args: argparse.Namespace) -> None:
     """
@@ -460,8 +457,7 @@ if __name__ == "__main__":
         console.print("\n [bold green].Attempting to find DOIs to call the Crossref API")
 
     if args.use_layoutlmv3:
-        console.print("\n [bold green]. Using LayoutLMv3 to find the required informationatus"
-                      "")
+        console.print("\n [bold green]. Using LayoutLMv3 to find the required information")
 
     if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
         console.print(

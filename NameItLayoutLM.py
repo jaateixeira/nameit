@@ -3,6 +3,7 @@ from PIL import Image
 import torch
 import fitz
 
+from utils.validators import validate
 
 def extract_info_from_pdf_using_ai_layout_ai_model(pdf_path):
     # Load the PDF
