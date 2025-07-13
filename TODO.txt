@@ -1,5 +1,7 @@
 TODO ASAP
 
+valid_path needs to be changed to os.path
+
 Validate data from cross reff
 The function should return  a valid
 Make it work with crossref first (nameit -c )
