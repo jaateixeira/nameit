@@ -105,7 +105,7 @@ def valid_path(path_to_rename: os.path) -> os.path:
     2. The path_to_rename exists on the filesystem.
     3. If a file, it has a `.pdf` extension and a valid PDF header.
     4. If a directory, it is not empty.
-    5. If a file, it has at least 5KB <- otherwise sould
+    5. If a file, it has at least 2KB <- otherwise is probably not an academic article in pdf
 
     Args:
         path_to_rename (os.path): Input path_to_rename to validate.
@@ -142,9 +142,9 @@ def valid_path(path_to_rename: os.path) -> os.path:
             raise argparse.ArgumentTypeError(
                 f"File '{path_to_rename}' is not a valid PDF (missing '%PDF-' header)."
             )
-        # Check file size is at minimum 5KB
+        # Check file size is at minimum 20KB
 
-        min_pdf_file_size_in_kb = 5
+        min_pdf_file_size_in_kb = 20
 
         file_size_in_kb = os.path.getsize(path_to_rename) / 1024
 
