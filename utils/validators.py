@@ -96,7 +96,7 @@ def is_pdf_file(file_path: str) -> bool:
     return mime == 'application/pdf'
 
 
-def valid_path(path_to_rename: str) -> str:
+def valid_path(path_to_rename: os.path) -> os.path:
     """
     Validate that the path_to_rename exists, is a file/directory, and meets PDF/directory constraints.
 
