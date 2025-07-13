@@ -190,6 +190,16 @@ def validate_author_family_name(author_family_name: str) -> bool:
         logger.error(error_msg)
         raise ValueError(error_msg)
 
+    # check that there are no digits in the names
+
+    digits = {'1','2','3','4','5','6','7','8','9','0'}
+
+    for digit in digits:
+        if digit in stripped_name:
+            error_msg = f"Author family name should not contain digits/numbers'{digit}'"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
     # Check minimum length (reduced to 2 to accommodate names like "Li")
     if len(stripped_name.replace(" ", "")) < 2:
         error_msg = f"Author family name must have at least 2 non-space characters, got '{stripped_name}'"
