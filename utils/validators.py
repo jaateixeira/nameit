@@ -16,9 +16,11 @@ def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""
     return isinstance(name, str) and name.strip()
 
+
 def validate_last_name(name: str) -> bool:
     """Validate that the last name is a non-empty string."""
     return isinstance(name, str) and name.strip()
+
 
 def validate_suffix(suffix: Optional[str]) -> bool:
     """Validate that the suffix is either None or a non-empty string."""
@@ -26,20 +28,27 @@ def validate_suffix(suffix: Optional[str]) -> bool:
         return True
     return isinstance(suffix, str) and suffix.strip()
 
+
 def validate_title(title: Optional[str]) -> bool:
-    """Validate that the title is either None or a non-empty string."""
+    """Validate that the title is either None or a non-empty string.
+    @param title:
+    @return:
+    """
     if title is None:
         return True
-    return isinstance(title, str) and title.strip()
+    return not (not isinstance(title, str) or not title.strip())
+
 
 def validate_journal(journal: str) -> bool:
     """Validate that the journal is a non-empty string."""
     return isinstance(journal, str) and journal.strip()
 
+
 def validate_year(year: int) -> bool:
     """Validate that the year is a reasonable value."""
     current_year = 2023  # Update this as necessary
     return isinstance(year, int) and 1900 <= year <= current_year
+
 
 def validate_author(author: Dict) -> Dict:
     """Validate the components of an author's name using HumanName."""
@@ -56,6 +65,7 @@ def validate_author(author: Dict) -> Dict:
         errors["title"] = "Invalid title."
 
     return errors
+
 
 def validate_publication(publication: Dict) -> Dict:
     """Validate the structure and content of a publication dictionary."""
@@ -144,13 +154,6 @@ def valid_path(path_to_rename: str) -> str:
 
     return path_to_rename
 
-
-# Validate that the author field is a string
-def validate_author(author:str):
-    if not isinstance(author, str):
-        logger.error(f"Author is not a string: {author}")
-        return False
-    return True
 
 def validate_author_family_name(author_family_name: str) -> bool:
     """
@@ -249,14 +252,6 @@ def validate_container_title(container_title):
     return True
 
 
-# Validate that the title field is a string
-def validate_title(title):
-    if not isinstance(title, str):
-        logger.error(f"Title is not a string: {title}")
-        return False
-    return True
-
-
 # Validate that the publisher field is a string
 def validate_publisher(publisher):
     if not isinstance(publisher, str):
@@ -265,12 +260,6 @@ def validate_publisher(publisher):
     return True
 
 
-# Validate that the year field is a positive integer
-def validate_year(year):
-    if not isinstance(year, int) or year <= 0:
-        logger.error(f"Year is not a positive integer: {year}")
-        return False
-    return True
 
 
 # Validate that the fetched metadata contains the required information
@@ -299,16 +288,14 @@ def validate_metadata(metadata):
     return True
 
 
-
-
 if __name__ == "__main__":
 
     # Example usage
     publication_data = {
-    "authors": [{"full_name": "Dr. John von Doe Jr."}, {"full_name": "Jane Smith"}],
-    "year": 2022,
-    "title": "An Example Title",
-    "journal": "Journal of Examples"
+        "authors": [{"full_name": "Dr. John von Doe Jr."}, {"full_name": "Jane Smith"}],
+        "year": 2022,
+        "title": "An Example Title",
+        "journal": "Journal of Examples"
     }
 
     validation_errors = validate_publication(publication_data)
