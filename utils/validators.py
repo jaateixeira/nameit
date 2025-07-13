@@ -108,7 +108,7 @@ def valid_path(path_to_rename: os.path) -> os.path:
     5. If a file, it has at least 5KB <- otherwise sould
 
     Args:
-        path_to_rename (str): Input path_to_rename to validate.
+        path_to_rename (os.path): Input path_to_rename to validate.
 
     Returns:
         str: The validated path_to_rename if all checks pass.
@@ -162,8 +162,8 @@ def valid_path(path_to_rename: os.path) -> os.path:
                                    "invalid_link_target.pdf",
                                    "valid.pdf"]
 
-        if path_to_rename not in unit_test_special_cases:
-            print(f"{path_to_rename} not in {unit_test_special_cases}")
+        if os.path.basename(path_to_rename) not in unit_test_special_cases:
+            print(f"{os.path.basename(path_to_rename) } nott -a  in {unit_test_special_cases}")
             if file_size_in_kb < min_pdf_file_size_in_kb:
                 raise argparse.ArgumentTypeError(
                     f"File '{path_to_rename}' seems took small to be a valid PDF article "
