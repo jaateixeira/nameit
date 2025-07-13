@@ -150,7 +150,7 @@ def valid_path(path_to_rename: str) -> str:
 
         print(f"UnitTest - file size of path_to_rename={path_to_rename} is {file_size_in_kb} KB")
 
-        if file_size_in_kb t < min_pdf_file_size_in_kb:
+        if file_size_in_kb < min_pdf_file_size_in_kb:
             raise argparse.ArgumentTypeError(
                 f"File '{path_to_rename}' seems took small to be a valid PDF article "
                 f"( {file_size_in_kb} < { min_pdf_file_size_in_kb}KB).")
