@@ -240,7 +240,7 @@ if __name__ == "__main__":
         console.print("\n [bold green].Attempting to find DOIs to call the Crossref API")
 
     if args.use_layoutlmv3:
-        console.print("\n [bold green]. Using LayoutLMv3 to find the required information")
+        console.print("\n [bold green]. Using LayoutLMv3 to find the required information" )
 
     if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
         console.print(
