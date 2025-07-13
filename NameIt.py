@@ -2,43 +2,31 @@
 # -*- coding: utf-8 -*-
 # Pep 8 - suggests standard imports first, then third-party libraries, then local imports.
 
-import importlib
 import re
 import string
 import subprocess
 import sys
 import unicodedata
-
-# For file type identification and MIME type detection
-# Ensures we are dealing with pdf files
-import magic
-
-
-# 4 Dynamic module loading
-from typing import Optional, Any
+import argparse
+import os
 
 
 from NameItCrossRef import extract_metadata_from_crossref_using_doi_in_pdf
 from models.error_model import ErrorModel
+from models.exceptions import InvalidNameItPath
+
 from utils.unified_logger import logger
 from utils.unified_console import console
-from models.exceptions import InvalidNameItPath
 from utils.validators import validate_metadata, validate_author_family_name, validate_title, validate_year, \
     validate_container_title, validate_publisher, valid_path
 
 
-def validate_no_wildcards(path:str):
-    if re.search(r'[\*\?\[\]]', path):
+def validate_no_wildcards(file_path: str):
+    if re.search(r'[\*\?\[\]]', file_path):
         raise argparse.ArgumentTypeError("Wildcards (*, ?, []) are not allowed. Provide a literal path.")
-    if not os.path.exists(path):
-        raise argparse.ArgumentTypeError(f"Path '{path}' does not exist.")
+    if not os.path.exists(file_path):
+        raise argparse.ArgumentTypeError(f"Path '{file_path}' does not exist.")
     return path
-
-
-import os
-import argparse
-
-
 
 
 def parse_arguments():
@@ -87,8 +75,6 @@ def remove_invalid_characters(text):
         for c in text
     )
     return cleaned_text
-
-
 
 
 # Extracting family name for the authors
@@ -153,17 +139,17 @@ def rename_pdf_file(pdf_file, metadata):
     else:
         cleaned_title = cleaned_title[:max_title_length] + "..."
 
-    new_filename = f"{cleaned_author_names} ({cleaned_year}) {cleaned_title} @ {cleaned_publication} - {cleaned_publisher}.pdf"
+    new_filename = (f"{cleaned_author_names}"
+                    f" ({cleaned_year})"
+                    f" {cleaned_title} "
+                    f"@ {cleaned_publication} "
+                    f"- {cleaned_publisher}.pdf")
 
     os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_filename))
     return new_filename
 
 
-import argparse
-import os
-
-
-def process_folder_or_file(path: str, args: argparse.Namespace) -> None:
+def process_folder_or_file(file_path: str, args: argparse.Namespace) -> None:
     """
     Process either a folder or a PDF file based on the given path and arguments.
 
@@ -172,7 +158,7 @@ def process_folder_or_file(path: str, args: argparse.Namespace) -> None:
     extraction method is determined by the provided arguments.
 
     Args:
-        path (str): The path to either a directory or a PDF file to be processed.
+        file_path (str): The path to either a directory or a PDF file to be processed.
         args (Any): Command line arguments object containing processing options:
             - use_pdf_metadata (bool): Whether to use PDF embedded metadata
             - use_crossref (bool): Whether to use Crossref API
@@ -183,11 +169,11 @@ def process_folder_or_file(path: str, args: argparse.Namespace) -> None:
 
     Raises:
         SystemExit: If an invalid processing method is specified or if the input path is invalid.
+        @param args:
+        @param file_path:
     """
-
-
     try:
-        valid_path(path)
+        valid_path(file_path)
     except InvalidNameItPath as e:
         error = ErrorModel.capture(e)
         error.display_user_friendly()
@@ -197,17 +183,15 @@ def process_folder_or_file(path: str, args: argparse.Namespace) -> None:
             suggestion="Check file extension, or provide a different file or directory."
         )
 
-
-
     # Test if the path is a directory
-    if os.path.isdir(path):
-        process_folder(path)
+    if os.path.isdir(file_path):
+        process_folder(file_path)
 
     # Handle PDF file case
-    elif os.path.isfile(path) and path.lower().endswith('.pdf'):
+    elif os.path.isfile(file_path) and path.lower().endswith('.pdf'):
         # Verify at least one processing method is specified
         if args.use_pdf_metadata or args.use_crossref or args.use_layoutlmv3:
-            pdf_file = path
+            pdf_file = file_path
             metadata = extract_metadata_from_crossref_using_doi_in_pdf(pdf_file)
         else:
             console.print("[red]Method not known.[/red]")
@@ -256,8 +240,7 @@ if __name__ == "__main__":
         console.print("\n [bold green].Attempting to find DOIs to call the Crossref API")
 
     if args.use_layoutlmv3:
-        console.print("\n [bold green]. Using LayoutLMv3 to find the required informationatus"
-                      "")
+        console.print("\n [bold green]. Using LayoutLMv3 to find the required information")
 
     if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
         console.print(

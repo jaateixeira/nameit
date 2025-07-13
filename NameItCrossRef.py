@@ -27,14 +27,13 @@ from utils.validators import (
     validate_publication
 )
 
-from datamodels import Publication
+from models.data_models import Publication
 
 
 def validate_crossref_returned_meta_data(meta_data:Optional[Dict]) -> Publication:
     console.print("\n [bold green]. Validating the data returned by the CrossRef API")
     logger.info("Validating the data returned by CrossRef API ")
     logger.info(meta_data)
-git
     # Extracting relevant information
     authors = meta_data.get('author', [])
     year = meta_data.get('published-print', {}).get('date-parts', [[None]])[0][0]
