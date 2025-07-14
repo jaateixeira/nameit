@@ -64,8 +64,6 @@ class ColorfulTestResult(unittest.TextTestResult):
 
 
 class TestValidateAuthorFamilyName(unittest.TestCase):
-
-    @unittest.skip("Temporarily disabled - for allowing GitHub Action CI/CD pipeline")
     def test_valid_names(self):
         """Test valid family names including spaces and UTF-8 characters"""
         self.assertTrue(validate_author_family_name("de Van"))
@@ -115,6 +113,7 @@ class TestValidateAuthorFamilyName(unittest.TestCase):
 
     def test_capitalization(self):
         """Test improper capitalization"""
+
         with self.assertRaises(ValueError):
             validate_author_family_name("garcía lópez")  # Lowercase first letter
         with self.assertRaises(ValueError):
@@ -122,7 +121,7 @@ class TestValidateAuthorFamilyName(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_author_family_name("íñigo montoya")  # Lowercase accented first letter
 
-    @unittest.skip("Temporarily disabled - for allowing GitHub Action CI/CD pipeline")
+
     def test_special_cases(self):
         """Test special cases and edge cases"""
         # Valid names with prefixes

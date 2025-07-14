@@ -187,20 +187,32 @@ class TestPathValidator(unittest.TestCase):
             f.write(b"NOT_A_PDF")
 
         symlink_path = os.path.join(self.test_data_dir, "invalid_link.pdf")
-log
+
         with self.assertRaises(argparse.ArgumentTypeError):
             valid_path(symlink_path)
 
-    @unittest.skip("Temporarily disabled - for allowing GitHub Action CI/CD pipeline")
-    def test_unreadable_pdf_file(self):
-        """Reject PDF with no read permissions."""
+    def test_file_permissions(self):
+        """Test how valid_path handles a file with no permissions."""
+        """ Should reject PDFs with no read permissions."""
+
+        # Create a test file path
         path = os.path.join(self.test_data_dir, "no_permission.pdf")
-        with open(path, "wb") as f:
-            f.write(b"%PDF-valid")
-        os.chmod(path, 0o000)  # No permissions
-        with self.assertRaises(argparse.ArgumentTypeError):
-            valid_path(path)
-        os.chmod(path, 0o644)  # Restore permissions (for cleanup)
+
+        try:
+            # Create and write to the file
+            with open(path, "wb") as f:
+                f.write(b"%PDF-valid")
+
+            # Remove all permissions
+            os.chmod(path, 0o000)
+
+            # Test valid_path with the restricted file and assert the expected exception
+            with self.assertRaises(PermissionError):
+                valid_path(path)
+
+        finally:
+            # Restore permissions for cleanup
+            os.chmod(path, 0o644)
 
     def test_empty_pdf_file(self):
         """Reject empty .pdf file (0 bytes)."""

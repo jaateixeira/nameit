@@ -153,7 +153,7 @@ def valid_path(path_to_rename: os.path) -> os.path:
         if file_size_in_kb < min_pdf_file_size_in_kb:
             raise argparse.ArgumentTypeError(
                 f"File '{path_to_rename}' seems took small to be a valid PDF article "
-                f"( {file_size_in_kb} < { min_pdf_file_size_in_kb}KB).")
+                f"( {file_size_in_kb} < {min_pdf_file_size_in_kb}KB).")
 
     # --- Step 4: Validate directories ---
     elif os.path.isdir(path_to_rename):
@@ -226,6 +226,14 @@ def validate_author_family_name(author_family_name: str) -> bool:
     valid_categories = {'Ll', 'Lu', 'Lt', 'Lo', 'Lm', 'Mn', 'Mc', 'Nd'}
     valid_punctuation = {"-", "'", " "}  # Added space as valid
 
+    invalid_strings = {"''", "--", "  "}
+
+    for invalid_str in invalid_strings:
+        if invalid_str in stripped_name:
+            error_msg = f"Invalid substring {invalid_str} found in  '{stripped_name}'"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
     for c in stripped_name:
         # Allow standard name punctuation and spaces
         if c in valid_punctuation:
@@ -241,19 +249,24 @@ def validate_author_family_name(author_family_name: str) -> bool:
     # Check proper capitalization for each part of the name
     name_parts = stripped_name.split()
     for part in name_parts:
-        # Skip empty parts (shouldn't happen due to earlier checks)
-        if not part:
-            continue
+
+        if len(part.strip()) == 0:
+            error_msg = f"The part '{part}' is empty in name '{stripped_name}. Should not happen. Fatal error.'"
+            logger.error(error_msg)
+            sys.exit()
+            # raise ValueError(error_msg)
 
         # Special handling for prefixes like "de", "van", "von" (optional)
-        lowercase_prefixes = {"de", "van", "von", "di", "del", "della"}
-        if part.lower() in lowercase_prefixes:
-            continue
+        lowercase_prefixes = ["de", "den","van", "von", "di", "de", "la", "del", "der","della","y","na"]
 
         # Check if the first alphabetic character is uppercase
         first_letter = next((c for c in part if c.isalpha()), None)
-        if first_letter and not first_letter.isupper():
-            error_msg = f"Name part '{part}' should start with an uppercase letter: '{stripped_name}'"
+
+        if first_letter.islower() and part in lowercase_prefixes:
+            continue
+        elif first_letter.islower() and part not in lowercase_prefixes:
+            error_msg = (f"First letter {first_letter} of '{part}' should start with an uppercase letter: "
+                         f"'{stripped_name}' {name_parts=} {lowercase_prefixes}")
             logger.error(error_msg)
             raise ValueError(error_msg)
 
