@@ -15,7 +15,6 @@ from rich.table import Table
 from utils.unified_console import console
 from utils.unified_logger import logger
 
-
 from utils.validators import (
     validate_first_name,
     validate_last_name,
@@ -30,19 +29,63 @@ from utils.validators import (
 from models.data_models import Publication
 
 
-def validate_crossref_returned_meta_data(meta_data:Optional[Dict]) -> Publication:
+def format_author_names(authors: list) -> str:
+    """
+    Formats a list of author names, typically obtained from the CrossRef API, into a string representation.
+
+    This function processes a list of author dictionaries, where each dictionary is expected to contain
+    at least a 'family' key representing the family name of the author. This data is typically obtained
+    from the CrossRef API under the path `meta_data['message']['author']`. The function formats the
+    authors' names into a string according to the following rules:
+    - If there is only one author, it returns the family name of that author.
+    - If there are two authors, it returns the family names joined by " and ".
+    - If there are more than two authors, it returns the family name of the first author followed by " et al."
+
+    Parameters:
+    authors (list of dict): A list of author dictionaries obtained from the CrossRef API. Each dictionary
+                           should contain at least a 'family' key with the author's family name.
+
+    Returns:
+    str: A formatted string representing the authors' names.
+
+    Examples:
+    >>> format_author_names([{'family': 'Smith'}])
+    'Smith'
+    >>> format_author_names([{'family': 'Smith'}, {'family': 'Johnson'}])
+    'Smith and Johnson'
+    >>> format_author_names([{'family': 'Smith'}, {'family': 'Johnson'}, {'family': 'Williams'}])
+    'Smith et al.'
+    """
+    logger.info(f"Formatting authors {authors}")
+    if len(authors) == 1:
+        return authors[0]['family']
+    elif len(authors) == 2:
+        return f"{authors[0]['family']} and {authors[1]['family']}"
+    else:
+        return f"{authors[0]['family']} et al."
+
+
+def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publication:
     console.print("\n [bold green]. Validating the data returned by the CrossRef API")
     logger.info("Validating the data returned by CrossRef API ")
     logger.info(meta_data)
     # Extracting relevant information
-    authors = meta_data.get('author', [])
-    year = meta_data.get('published-print', {}).get('date-parts', [[None]])[0][0]
-    title = meta_data.get('title', [])
-    container_title = meta_data.get('container-title', [])
-    publisher = meta_data.get('publisher')
+    raw_authors = meta_data['message']['author']
+    raw_year = meta_data['message']['issued']['date-parts'][0][0]
+    raw_title = meta_data['message']['title'][0]
+    raw_publication = meta_data['message']['container-title'][0] if 'container-title' in meta_data[
+        'message'] else 'Unknown publication'
+    raw_publisher = meta_data['message']['publisher'] if 'publisher' in meta_data['message'] else 'Unknown publisher'
 
-    console.print(authors)
-    logger.info(str(authors),year,title,container_title,publisher)
+    progress_message: str = "Picking the relevant data from the metadata returned from CrossRef"
+    console.print(progress_message)
+    logger.info(progress_message)
+
+    console.print(f"{raw_authors=}")
+    console.print(f"{raw_year=}")
+    console.print(f"{raw_title=}")
+    console.print(f"{raw_publication=}")
+    console.print(f"{raw_publisher=}")
 
     # Creating a table
     raw_table = Table(title="RAW CrossRef MetaData Information")
@@ -52,13 +95,16 @@ def validate_crossref_returned_meta_data(meta_data:Optional[Dict]) -> Publicatio
     raw_table.add_column("Value", style="magenta")
 
     # Adding rows
-    raw_table.add_row("Authors", str(authors))
-    raw_table.add_row("Year", str(year) if year else "No year available")
-    raw_table.add_row("Title", str(title))
-    raw_table.add_row("Publication", str(container_title))
-    raw_table.add_row("Publisher", f"{publisher}")
+    raw_table.add_row("Authors", str(raw_authors))
+    raw_table.add_row("format_author_names(Authors)", format_author_names(raw_authors))
+    raw_table.add_row("Year", str(raw_year))
+    raw_table.add_row("Title", raw_title)
+    raw_table.add_row("Publication", raw_publication)
+    raw_table.add_row("Publisher", raw_publisher)
 
     console.print(raw_table)
+
+    sys.exit()
 
     # Formatting the information
     authors_str = ", ".join([f"{author.get('given', '')} {author.get('family', '')}".strip() for author in
@@ -82,7 +128,6 @@ def validate_crossref_returned_meta_data(meta_data:Optional[Dict]) -> Publicatio
     raw_table.add_row("Publisher", f"{publisher_str}.pdf")
 
     console.print(raw_table)
-
 
     return False
 
@@ -123,7 +168,7 @@ def extract_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Optional[D
             sys.exit()
             if validate_crossref_returned_meta_data(meta_data_fetched_via_CrossRef_API):
 
-                return  meta_data_fetched_via_CrossRef_API
+                return meta_data_fetched_via_CrossRef_API
             else:
                 console.print("\n [bold red]. The metadata returned by CrossRef is invalid")
                 return None

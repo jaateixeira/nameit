@@ -77,16 +77,8 @@ def remove_invalid_characters(text):
     return cleaned_text
 
 
-# Extracting family name for the authors
-def format_author_names(authors):
-    logger.info(f"Formatting authors {authors}")
 
-    if len(authors) == 1:
-        return authors[0]['family']
-    elif len(authors) == 2:
-        return f"{authors[0]['family']} and {authors[1]['family']}"
-    else:
-        return f"{authors[0]['family']} et al."
+
 
 
 # Saving required information from the metadata to the file and removing invalid characters
