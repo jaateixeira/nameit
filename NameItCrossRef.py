@@ -104,14 +104,11 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
 
     console.print(raw_table)
 
-    sys.exit()
-
     # Formatting the information
-    authors_str = ", ".join([f"{author.get('given', '')} {author.get('family', '')}".strip() for author in
-                             authors]) if authors else "No authors available"
-    title_str = " ".join(title) if title else "No title available"
-    container_title_str = " ".join(container_title) if container_title else "No container title available"
-    publisher_str = publisher if publisher else "No publisher available"
+    authors_str = format_author_names(raw_authors)
+    title_str = " ".join(raw_title) if raw_title else "No title available via CrossRef API"
+    container_title_str = " ".join(container_title) if container_title else "No container title (e.g. journal) available via CrossRef API"
+    publisher_str = publisher if publisher else "No publisher available via CrossRef API"
 
     # Creating a table
     valid_table = Table(title="Validated (fixed as good as possible) CrossRef MetaData Information")
