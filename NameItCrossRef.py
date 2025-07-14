@@ -42,7 +42,6 @@ def validate_crossref_returned_meta_data(meta_data:Optional[Dict]) -> Publicatio
     publisher = meta_data.get('publisher')
 
     console.print(authors)
-    sys.exit()
     logger.info(str(authors),year,title,container_title,publisher)
 
     # Creating a table
@@ -53,14 +52,13 @@ def validate_crossref_returned_meta_data(meta_data:Optional[Dict]) -> Publicatio
     raw_table.add_column("Value", style="magenta")
 
     # Adding rows
-    raw_table.add_row("Authors", authors)
+    raw_table.add_row("Authors", str(authors))
     raw_table.add_row("Year", str(year) if year else "No year available")
-    raw_table.add_row("Title", title)
-    raw_table.add_row("Publication", container_title)
-    raw_table.add_row("Publisher", f"{publisher}.pdf")
+    raw_table.add_row("Title", str(title))
+    raw_table.add_row("Publication", str(container_title))
+    raw_table.add_row("Publisher", f"{publisher}")
 
     console.print(raw_table)
-
 
     # Formatting the information
     authors_str = ", ".join([f"{author.get('given', '')} {author.get('family', '')}".strip() for author in
