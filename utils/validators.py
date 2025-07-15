@@ -2,7 +2,7 @@ from typing import Optional, Dict, List
 import os
 import argparse
 import sys
-
+from datetime import datetime
 import unicodedata
 import magic
 
@@ -44,10 +44,13 @@ def validate_journal(journal: str) -> bool:
     return isinstance(journal, str) and journal.strip()
 
 
-def validate_year(year: int) -> bool:
+def validate_year(pub_year: int) -> int:
     """Validate that the year is a reasonable value."""
-    current_year = 2023  # Update this as necessary
-    return isinstance(year, int) and 1900 <= year <= current_year
+    current_year = datetime.now().year
+    if 1900 <= pub_year <= current_year:
+        return pub_year
+    else:
+        raise ValueError("Invalid year provided.")
 
 
 def validate_author(author: Dict) -> Dict:
@@ -257,7 +260,7 @@ def validate_author_family_name(author_family_name: str) -> bool:
             # raise ValueError(error_msg)
 
         # Special handling for prefixes like "de", "van", "von" (optional)
-        lowercase_prefixes = ["de", "den","van", "von", "di", "de", "la", "del", "der","della","y","na"]
+        lowercase_prefixes = ["de", "den", "van", "von", "di", "de", "la", "del", "der", "della", "y", "na"]
 
         # Check if the first alphabetic character is uppercase
         first_letter = next((c for c in part if c.isalpha()), None)

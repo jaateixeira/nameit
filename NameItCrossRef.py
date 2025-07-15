@@ -104,11 +104,18 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
 
     console.print(raw_table)
 
-    # Formatting the information
-    authors_str = format_author_names(raw_authors)
-    title_str = " ".join(raw_title) if raw_title else "No title available via CrossRef API"
-    container_title_str = " ".join(container_title) if container_title else "No container title (e.g. journal) available via CrossRef API"
-    publisher_str = publisher if publisher else "No publisher available via CrossRef API"
+    progress_message: str = "Validating the metadata returned from CrossRef"
+    console.print(progress_message)
+    logger.info(progress_message)
+
+    # TODO format each family name
+    valid_authors = format_author_names(raw_authors)
+    valid_year = validate_year(raw_year)
+
+
+    progress_message: str = "Printing the relevant and validated metadata returned from CrossRef"
+    console.print(progress_message)
+    logger.info(progress_message)
 
     # Creating a table
     valid_table = Table(title="Validated (fixed as good as possible) CrossRef MetaData Information")
@@ -125,6 +132,15 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     raw_table.add_row("Publisher", f"{publisher_str}.pdf")
 
     console.print(raw_table)
+
+    # Formatting the information
+    authors_str = format_author_names(raw_authors)
+    title_str = " ".join(raw_title) if raw_title else "No title available via CrossRef API"
+    year_str = " ".join(str(raw_year)) if raw_year else "No year available via CrossRef API"
+    publication_str = " ".join(str(raw_publication) if raw_publication else "No container title (e.g. journal name) available via CrossRef API")
+    publisher_str = "".join(str(raw_publisher)) publisher if publisher else "No publisher available via CrossRef API"
+
+
 
     return False
 
