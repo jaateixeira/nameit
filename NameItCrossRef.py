@@ -69,6 +69,7 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     console.print("\n [bold green]. Validating the data returned by the CrossRef API")
     logger.info("Validating the data returned by CrossRef API ")
     logger.info(meta_data)
+
     # Extracting relevant information
     raw_authors = meta_data['message']['author']
     raw_year = meta_data['message']['issued']['date-parts'][0][0]
@@ -108,7 +109,6 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     console.print(progress_message)
     logger.info(progress_message)
 
-    # TODO format each family name
     valid_authors = validate_family_names_in_metadata_retrieved_from_cross_ref(raw_authors)
     valid_year = validate_year(raw_year)
     valid_title = validate_title(raw_title)

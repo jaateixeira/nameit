@@ -44,6 +44,9 @@ class Publication:
             "year": self.year,
             "authors": [{"full_name": author.full_name} for author in self.authors]
         }
+
+
+
         return validate_publication(publication_data)
 
 # Example usage

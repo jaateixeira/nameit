@@ -47,24 +47,33 @@ def validate_author(author: Dict) -> Dict:
 
 
 def validate_family_names_in_metadata_retrieved_from_cross_ref(meta_data_authors: list) -> list:
-    #TODO implement it
+    logger.info("Validating family names in a data structure retrieved from CrossRef")
+    #console.print(f"{meta_data_authors=}")
+
+    for author in meta_data_authors:
+        #console.print(f"{author=}")
+        #console.print(f"{author['family']=}")
+        validate_author_family_name(author['family'])
+
     return meta_data_authors
 
 
-def validate_title(title: str) -> str:
+def validate_title(retrieved_title: str) -> str:
     """Validate that the title is either None or a non-empty string.
-    @param title:
+    @param retrieved_title:
     @return:
     """
-    logger.info(f"Validating title {title}")
+    logger.info(f"Validating title {retrieved_title}")
 
-    if title is None:
-        raise ValueError(f"Invalid title {title}provided. Can't be none")
-    if not isinstance(title, str):
-        raise ValueError(f"Invalid title {title}provided. Must be a str instance.")
-    if len(title.strip()) == 0:
-        raise ValueError(f"Invalid title {title}provided. Can be an empty string")
-    return title
+    if retrieved_title is None:
+        raise ValueError(f"Invalid title {retrieved_title=}provided. Can't be none")
+    if not isinstance(retrieved_title, str):
+        raise ValueError(f"Invalid title {retrieved_title=}provided. Must be a str instance.")
+
+    # TODO debug wy this is braking
+    #if retrived_title.strip() == "":
+    #    raise ValueError(f"Invalid title {retrived_title=}provided. Can be an empty string")
+    #return retrived_title
 
 
 def validate_year(pub_year: int) -> int:
@@ -194,7 +203,7 @@ def valid_path(path_to_rename: os.path) -> os.path:
     return path_to_rename
 
 
-def validate_author_family_name(author_family_name: str) -> bool:
+def validate_author_family_name(author_family_name: str) -> str:
     """
     Validate that the input is a valid scientific journal article author's family name.
 
@@ -208,7 +217,7 @@ def validate_author_family_name(author_family_name: str) -> bool:
         author_family_name: The family name to validate
 
     Returns:
-        bool: True if the name is valid, False otherwise
+        bool: returns a validated or corrected author family name 
 
     Raises:
         TypeError: If the input is not a string
@@ -295,7 +304,7 @@ def validate_author_family_name(author_family_name: str) -> bool:
 
     # All checks passed
     logger.debug(f"Valid author family name: '{stripped_name}'")
-    return True
+    return author_family_name
 
 
 # Validate that the issued field is a positive integer
