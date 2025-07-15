@@ -29,30 +29,6 @@ def validate_suffix(suffix: Optional[str]) -> bool:
     return isinstance(suffix, str) and suffix.strip()
 
 
-def validate_title(title: Optional[str]) -> bool:
-    """Validate that the title is either None or a non-empty string.
-    @param title:
-    @return:
-    """
-    if title is None:
-        return True
-    return not (not isinstance(title, str) or not title.strip())
-
-
-def validate_journal(journal: str) -> bool:
-    """Validate that the journal is a non-empty string."""
-    return isinstance(journal, str) and journal.strip()
-
-
-def validate_year(pub_year: int) -> int:
-    """Validate that the year is a reasonable value."""
-    current_year = datetime.now().year
-    if 1900 <= pub_year <= current_year:
-        return pub_year
-    else:
-        raise ValueError("Invalid year provided.")
-
-
 def validate_author(author: Dict) -> Dict:
     """Validate the components of an author's name using HumanName."""
     errors = {}
@@ -68,6 +44,35 @@ def validate_author(author: Dict) -> Dict:
         errors["title"] = "Invalid title."
 
     return errors
+
+
+def validate_family_names_in_metadata_retrieved_from_cross_ref(meta_data_authors: list) -> list:
+    #TODO implement it
+    return meta_data_authors
+
+
+def validate_title(title: Optional[str]) -> bool:
+    """Validate that the title is either None or a non-empty string.
+    @param title:
+    @return:
+    """
+    if title is None:
+        return True
+    return not (not isinstance(title, str) or not title.strip())
+
+
+def validate_year(pub_year: int) -> int:
+    """Validate that the year is a reasonable value."""
+    current_year = datetime.now().year
+    if 1900 <= pub_year <= current_year:
+        return pub_year
+    else:
+        raise ValueError("Invalid year provided.")
+
+
+def validate_journal(journal: str) -> bool:
+    """Validate that the journal is a non-empty string."""
+    return isinstance(journal, str) and journal.strip()
 
 
 def validate_publication(publication: Dict) -> Dict:
@@ -92,6 +97,13 @@ def validate_publication(publication: Dict) -> Dict:
         errors["journal"] = "Invalid or missing journal."
 
     return errors
+
+
+def validate_publisher_name(publisher_name: str) -> str:
+    if isinstance(publisher_name, str) and bool(publisher_name.strip()):
+        return publisher_name
+    else:
+        raise ValueError(f"Invalid publisher name provided {publisher_name}")
 
 
 def is_pdf_file(file_path: str) -> bool:

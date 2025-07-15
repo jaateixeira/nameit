@@ -23,7 +23,7 @@ from utils.validators import (
     validate_journal,
     validate_year,
     validate_author,
-    validate_publication
+    validate_publication, validate_publisher_name, validate_family_names_in_metadata_retrieved_from_cross_ref
 )
 
 from models.data_models import Publication
@@ -109,8 +109,11 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     logger.info(progress_message)
 
     # TODO format each family name
-    valid_authors = format_author_names(raw_authors)
+    valid_authors = validate_family_names_in_metadata_retrieved_from_cross_ref(raw_authors)
     valid_year = validate_year(raw_year)
+    valid_title = validate_title(raw_title)
+    valid_publication= validate_journal(raw_publication)
+    valid_publisher = validate_publisher_name(raw_publisher)
 
 
     progress_message: str = "Printing the relevant and validated metadata returned from CrossRef"
