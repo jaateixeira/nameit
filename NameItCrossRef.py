@@ -112,9 +112,8 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     valid_authors = validate_family_names_in_metadata_retrieved_from_cross_ref(raw_authors)
     valid_year = validate_year(raw_year)
     valid_title = validate_title(raw_title)
-    valid_publication= validate_journal(raw_publication)
+    valid_publication = validate_journal(raw_publication)
     valid_publisher = validate_publisher_name(raw_publisher)
-
 
     progress_message: str = "Printing the relevant and validated metadata returned from CrossRef"
     console.print(progress_message)
@@ -137,10 +136,6 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
 
     console.print(raw_table)
 
-    # Implment validate authors
-    print ("TODO implement validate authors")
-    sys.exit()
-
     # Formatting the information --> implement method in publiscaiton objecg
     #authors_str = format_author_names(raw_authors)
     #title_str = " ".join(raw_title) if raw_title else "No title available via CrossRef API"
@@ -149,7 +144,8 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     #publisher_str = "".join(str(raw_publisher)) publisher if publisher else "No publisher available via CrossRef API"
 
 
-
+    console.print("should create and return a publication")
+    sys.exit()
     return False
 
 
