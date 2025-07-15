@@ -132,9 +132,9 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     valid_table.add_row("Year", str(valid_year) if valid_year else "No year available")
     valid_table.add_row("Title", valid_title)
     valid_table.add_row("Publication", valid_publication)
-    raw_table.add_row("Publisher", valid_publisher)
+    valid_table.add_row("Publisher", valid_publisher)
 
-    console.print(raw_table)
+    console.print(valid_table)
 
     # Formatting the information --> implement method in publiscaiton objecg
     #authors_str = format_author_names(raw_authors)
