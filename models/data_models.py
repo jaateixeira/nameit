@@ -15,6 +15,7 @@ from utils.validators import (
 
 @dataclass
 class Author:
+    """Deprecated: This class is not used in the current version."""
     full_name: str
     first_name: Optional[str] = field(init=False)
     last_name: Optional[str] = field(init=False)
@@ -34,10 +35,11 @@ class Author:
 
 @dataclass
 class Publication:
+    authors: str
+    year: int
     title: str
     journal: str
-    year: int
-    authors: List[Author]
+    publication:str
 
     def validate(self) -> dict:
         publication_data = {

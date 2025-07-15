@@ -85,45 +85,10 @@ def remove_invalid_characters(text):
 def rename_pdf_file(pdf_file, metadata):
     logger.info(f"renaming pdf file  {pdf_file}")
 
-    if not validate_metadata(metadata):
-        return None
+    publication = validate_metadata(metadata)
 
-    # Todo add description here the cross ref metadata     
-    authors = metadata['message']['author']
 
-    logger.info(f"Number of authors found in  metadata {len(authors)}")
-    logger.info(f"validating authors metadata {authors}")
-
-    for author in authors:
-        logger.info(f"validating author {author}")
-        validate_author_family_name(author['family'])
-
-    author_names = format_author_names(authors)
-
-    title = metadata['message']['title'][0]
-    if not validate_title(title):
-        return None
-
-    year = metadata['message']['issued']['date-parts'][0][0]
-    if not validate_year(year):
-        return None
-
-    publication = metadata['message']['container-title'][0] if 'container-title' in metadata[
-        'message'] else 'Unknown publication'
-    if not validate_container_title(publication):
-        return None
-
-    publisher = metadata['message']['publisher'] if 'publisher' in metadata['message'] else 'Unknown publisher'
-    if not validate_publisher(publisher):
-        return None
-
-    cleaned_author_names = remove_invalid_characters(author_names)
-    cleaned_title = remove_invalid_characters(title)
-    cleaned_year = remove_invalid_characters(str(year))
-    cleaned_publication = remove_invalid_characters(publication)
-    cleaned_publisher = remove_invalid_characters(publisher)
-
-    max_title_length = 255 - len(cleaned_author_names) - len(str(year)) - len(cleaned_publication) - len(
+    max_title_length = 255 - len(publication.) - len(str(year)) - len(cleaned_publication) - len(
         cleaned_publisher) - len(" () ... @  - .pdf")
 
     if len(cleaned_title) <= max_title_length:

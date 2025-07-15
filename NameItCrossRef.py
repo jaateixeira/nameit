@@ -78,7 +78,7 @@ def format_author_names(authors: list) -> str:
 def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publication:
     console.print("\n [bold green]. Validating the data returned by the CrossRef API")
     logger.info("Validating the data returned by CrossRef API ")
-    logger.info(meta_data)
+    #logger.info(meta_data)
 
     # Extracting relevant information
     raw_authors = meta_data['message']['author']
@@ -88,7 +88,8 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
         'message'] else 'Unknown publication'
     raw_publisher = meta_data['message']['publisher'] if 'publisher' in meta_data['message'] else 'Unknown publisher'
 
-    progress_message: str = "Picking the relevant data from the metadata returned from CrossRef"
+    progress_message: str = (
+                             " [bold green]. Picking the relevant data from the metadata returned from CrossRef")
     console.print(progress_message)
     logger.info(progress_message)
 
@@ -154,18 +155,12 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
 
     console.print(valid_table)
 
-    # Formatting the information --> implement method in publiscaiton objecg
-    #authors_str = format_author_names(raw_authors)
-    #title_str = " ".join(raw_title) if raw_title else "No title available via CrossRef API"
-    #year_str = " ".join(str(raw_year)) if raw_year else "No year available via CrossRef API"
-    #publication_str = " ".join(str(raw_publication) if raw_publication else "No container title (e.g. journal name) available via CrossRef API")
-    #publisher_str = "".join(str(raw_publisher)) publisher if publisher else "No publisher available via CrossRef API"
 
+    publication = Publication(format_author_names(valid_authors),valid_year,valid_title,valid_publication,valid_publisher)
 
-    console.print("should create and return a publication")
-    sys.exit()
-    return False
+    console.print(f"{publication=}")
 
+    return publication
 
 def extract_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Optional[Dict]:
     """
@@ -199,10 +194,8 @@ def extract_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Optional[D
             console.print("\n [bold green]. CrossRef API returned metadata 😀")
             console.print("\n [bold blue]. Time to validate the returned metadata")
 
-            validate_crossref_returned_meta_data(meta_data_fetched_via_CrossRef_API)
-            sys.exit()
             if validate_crossref_returned_meta_data(meta_data_fetched_via_CrossRef_API):
-
+                console.print("\n [bold green]. CrossRef API returned metadata was validated 😀")
                 return meta_data_fetched_via_CrossRef_API
             else:
                 console.print("\n [bold red]. The metadata returned by CrossRef is invalid")
@@ -251,7 +244,8 @@ def fetch_metadata_by_doi(doi: str) -> Optional[Dict[str, Any]]:
 
 
         logger.info(f"Successfully extracted metadata for DOI: {doi} through crossref.org")
-        console.print(metadata)  # Use rich to print the metadata
+        #console.print(metadata)  # Use rich to print the metadata
+        #console.print(metadata.get("author"))
 
     except Crossref.HttpError as e:
         logger.error(f"HTTP error occurred while accessing Crossref API for DOI: {doi}. Error: {e}")
