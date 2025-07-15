@@ -14,7 +14,7 @@ from jsonschema import validate, ValidationError
 from utils.unified_console import console
 from utils.unified_logger import logger
 
-    
+
 def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""
     return isinstance(name, str) and name.strip()
@@ -50,8 +50,36 @@ def validate_author(author: Dict) -> Dict:
 
 
 
+def validate_authors_list_retrieved_from_cross_ref(meta_data_authors: list) -> bool:
+    """
+    Validates the author list returned from Crossref metadata.
 
+    Args:
+        meta_data_authors (list): The "author" field from Crossref metadata (cr.works()['message']['author'])
 
+    Returns:
+        bool: True if the list is valid, False otherwise.
+    """
+    logger.info("Validating authors list in a structure retrieved from CrossRef")
+    console.print(f"{meta_data_authors=}")
+
+    if not isinstance(meta_data_authors, list) or not meta_data_authors:
+        return False
+
+    for author in meta_data_authors:
+        if not isinstance(author, dict):
+            return False
+
+        # Check for required fields
+        if not author.get('given') or not author.get('family'):
+            return False
+
+        # Optional: Ensure names are strings
+        if not isinstance(author['given'], str) or not isinstance(author['family'], str):
+            return False
+
+    logger.info("Authors list data structure retrieved from CrossRef is valid")
+    return True
 
 
 def validate_family_names_in_metadata_retrieved_from_cross_ref(meta_data_authors: list) -> list:
@@ -66,22 +94,22 @@ def validate_family_names_in_metadata_retrieved_from_cross_ref(meta_data_authors
     return meta_data_authors
 
 
-def validate_title(retrieved_title: str) -> str:
+def validate_title(retrieved_article_title: str) -> str:
     """Validate that the title is either None or a non-empty string.
     @param retrieved_title:
     @return:
     """
-    logger.info(f"Validating title {retrieved_title}")
+    logger.info(f"Validating title {retrieved_article_title}")
 
-    if retrieved_title is None:
-        raise ValueError(f"Invalid title {retrieved_title=}provided. Can't be none")
-    if not isinstance(retrieved_title, str):
-        raise ValueError(f"Invalid title {retrieved_title=}provided. Must be a str instance.")
+    if retrieved_article_title is None:
+        raise ValueError(f"Invalid title {retrieved_article_title=}provided. Can't be none")
+    if not isinstance(retrieved_article_title, str):
+        raise ValueError(f"Invalid title {retrieved_article_title=}provided. Must be a str instance.")
 
-    # TODO debug wy this is braking
-    #if retrived_title.strip() == "":
-    #    raise ValueError(f"Invalid title {retrived_title=}provided. Can be an empty string")
-    #return retrived_title
+    if retrieved_article_title.strip() == "":
+        raise ValueError(f"Invalid title {retrieved_article_title=}provided. Can be an empty string")
+
+    return retrieved_article_title
 
 
 def validate_year(pub_year: int) -> int:

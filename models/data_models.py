@@ -12,6 +12,7 @@ from utils.validators import (
     validate_publication
 )
 
+
 @dataclass
 class Author:
     full_name: str
@@ -30,6 +31,7 @@ class Author:
     def validate(self) -> dict:
         return validate_author({"full_name": self.full_name})
 
+
 @dataclass
 class Publication:
     title: str
@@ -45,23 +47,21 @@ class Publication:
             "authors": [{"full_name": author.full_name} for author in self.authors]
         }
 
-
-
         return validate_publication(publication_data)
 
-# Example usage
-author1 = Author(full_name="Dr. John von Doe Jr.")
-author2 = Author(full_name="Jane Smith")
-publication = Publication(
+if __name__ == "__main__":
+    # Example usage
+    author1 = Author(full_name="Dr. John von Doe Jr.")
+    author2 = Author(full_name="Jane Smith")
+    publication = Publication(
     title="An Example Title",
     journal="Journal of Examples",
     year=2022,
-    authors=[author1, author2]
-)
+    authors=[author1, author2])
 
-# Validate the publication
-validation_errors = publication.validate()
-if not validation_errors:
-    print("Publication data is valid.")
-else:
-    print("Validation errors:", validation_errors)
+    # Validate the publication
+    validation_errors = publication.validate()
+    if not validation_errors:
+        print("Publication data is valid.")
+    else:
+        print("Validation errors:", validation_errors)

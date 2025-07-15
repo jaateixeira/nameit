@@ -1,7 +1,6 @@
 TODO ASAP
 
-Cache and set contact for API use
-Validate data from cross reff
+Check the Validate data functio  == ""from cross reff
 Should create and return a publication
 
 The function should return  a valid

@@ -29,7 +29,8 @@ from utils.validators import (
     validate_journal,
     validate_year,
     validate_author,
-    validate_publication, validate_publisher_name, validate_family_names_in_metadata_retrieved_from_cross_ref
+    validate_publication, validate_publisher_name, validate_family_names_in_metadata_retrieved_from_cross_ref,
+    validate_authors_list_retrieved_from_cross_ref
 )
 
 from models.data_models import Publication
@@ -111,12 +112,20 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     raw_table.add_row("Publication", raw_publication)
     raw_table.add_row("Publisher", raw_publisher)
 
+
     console.print(raw_table)
 
     progress_message: str = "Validating the metadata returned from CrossRef"
     console.print(progress_message)
     logger.info(progress_message)
 
+    # First validate the authors structure retrieved is acceptable to work with
+    if not validate_authors_list_retrieved_from_cross_ref(raw_authors):
+        console.print("not valid code cross ref")
+        console.print("raise exception")
+        sys.exit()
+
+    # Then validate that the authors family names are valid
     valid_authors = validate_family_names_in_metadata_retrieved_from_cross_ref(raw_authors)
     valid_year = validate_year(raw_year)
     valid_title = validate_title(raw_title)
