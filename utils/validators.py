@@ -1,4 +1,4 @@
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 import os
 import argparse
 import sys
@@ -14,6 +14,7 @@ from jsonschema import validate, ValidationError
 from utils.unified_console import console
 from utils.unified_logger import logger
 
+from models.exceptions import InvalidCrossrefDataError
 
 def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""
@@ -48,6 +49,49 @@ def validate_author(author: Dict) -> Dict:
 
     return errors
 
+
+def valid_crossref_metadata(record: Dict[str, Any]) -> bool:
+    """
+    Validates Crossref metadata retrieved via Habanero.
+
+    Args:
+        record (Dict[str, Any]): The record returned by cr.works(ids=...)
+
+    Returns:
+        bool: True if all required fields are present, otherwise raises InvalidCrossrefDataError.
+    """
+    message = record.get("message", {})
+    missing = []
+
+    # Check for author
+    authors = message.get("author")
+    if not authors or not isinstance(authors, list):
+        missing.append("author")
+
+    # Check for year (issued.date-parts)
+    issued = message.get("issued", {}).get("date-parts", [])
+    if not issued or not issued[0] or not issued[0][0]:
+        missing.append("year")
+
+    # Check for title
+    title = message.get("title")
+    if not title or not isinstance(title, list) or not title[0].strip():
+        missing.append("title")
+
+    # Check for journal title (container-title)
+    container = message.get("container-title")
+    if not container or not isinstance(container, list) or not container[0].strip():
+        missing.append("container-title (journal)")
+
+    # Check for publisher
+    publisher = message.get("publisher")
+    if not publisher or not publisher.strip():
+        missing.append("publisher")
+
+    if missing:
+        raise InvalidCrossrefDataError(missing)
+
+    return True
 
 
 def validate_authors_list_retrieved_from_cross_ref(meta_data_authors: list) -> bool:

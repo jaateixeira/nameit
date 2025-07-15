@@ -68,6 +68,15 @@ class PDFEncryptedError(PDFError):
         )
 
 
+# CrossRef exceptions
+class InvalidCrossrefDataError(Exception):
+    """Raised when essential Crossref metadata fields are missing or invalid."""
+    def __init__(self, missing_fields):
+        message = f"Missing or invalid fields in Crossref metadata: {', '.join(missing_fields)}"
+        super().__init__(message)
+        self.missing_fields = missing_fields
+
+
 # Filesystem exceptions
 class InvalidNameItPath(FileSystemError):
     """Raised when a provided path is invalid or doesn't meet PDF requirements.

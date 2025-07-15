@@ -1,5 +1,6 @@
 import sys
 
+from models.exceptions import InvalidCrossrefDataError
 from utils.unified_logger import console, logger
 
 import re
@@ -30,7 +31,7 @@ from utils.validators import (
     validate_year,
     validate_author,
     validate_publication, validate_publisher_name, validate_family_names_in_metadata_retrieved_from_cross_ref,
-    validate_authors_list_retrieved_from_cross_ref
+    validate_authors_list_retrieved_from_cross_ref, valid_crossref_metadata
 )
 
 from models.data_models import Publication
@@ -238,12 +239,19 @@ def fetch_metadata_by_doi(doi: str) -> Optional[Dict[str, Any]]:
         cr = Crossref(mailto="jose.teixeira@abo.fi")
         metadata = cr.works(doi)
 
-        if metadata:
-            logger.info(f"Successfully extracted metadata for DOI: {doi} through crossref.org")
-            console.print(metadata)  # Use rich to print the metadata
-            return metadata
-        else:
-            logger.warning(f"No metadata found for DOI: {doi}")
+        if not metadata or 'message' not in metadata:
+            raise InvalidCrossrefDataError("No 'message' in response.")
+
+        message = metadata['message']
+        if not message.get('title') or not message.get('author'):
+            raise InvalidCrossrefDataError("Missing required fields like title or author.")
+
+        if not valid_crossref_metadata(metadata):
+            raise InvalidCrossrefDataError(f"Invalid CrossRefData. Did not pass valid_crossref_metadata")
+
+
+        logger.info(f"Successfully extracted metadata for DOI: {doi} through crossref.org")
+        console.print(metadata)  # Use rich to print the metadata
 
     except Crossref.HttpError as e:
         logger.error(f"HTTP error occurred while accessing Crossref API for DOI: {doi}. Error: {e}")
@@ -252,4 +260,4 @@ def fetch_metadata_by_doi(doi: str) -> Optional[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Unexpected error fetching metadata by DOI: {doi}. Error: {e}", exc_info=True)
 
-    return None
+    return metadata
