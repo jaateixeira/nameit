@@ -25,3 +25,4 @@ pip3 install CrossRef
 pip3 install nameparser
 pip3 install nameparser
 pip3 install jsonschema
+pip3 install requests_cache

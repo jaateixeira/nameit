@@ -1,8 +1,9 @@
 TODO ASAP
 
-valid_path needs to be changed to os.path
-
+Cache and set contact for API use
 Validate data from cross reff
+Should create and return a publication
+
 The function should return  a valid
 Make it work with crossref first (nameit -c )
 

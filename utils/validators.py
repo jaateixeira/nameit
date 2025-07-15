@@ -8,10 +8,13 @@ import magic
 
 from nameparser import HumanName
 
+from habanero import Crossref
+from jsonschema import validate, ValidationError
+
 from utils.unified_console import console
 from utils.unified_logger import logger
 
-
+    
 def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""
     return isinstance(name, str) and name.strip()
@@ -44,6 +47,11 @@ def validate_author(author: Dict) -> Dict:
         errors["title"] = "Invalid title."
 
     return errors
+
+
+
+
+
 
 
 def validate_family_names_in_metadata_retrieved_from_cross_ref(meta_data_authors: list) -> list:
