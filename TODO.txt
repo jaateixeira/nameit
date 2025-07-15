@@ -1,6 +1,6 @@
 TODO ASAP
 
-Check the Validate data functio  == ""from cross reff
+Make the exception invalid cross ref data to be raised
 Should create and return a publication
 
 The function should return  a valid
