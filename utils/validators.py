@@ -51,17 +51,19 @@ def validate_family_names_in_metadata_retrieved_from_cross_ref(meta_data_authors
     return meta_data_authors
 
 
-def validate_title(title: Optional[str]) -> str:
+def validate_title(title: str) -> str:
     """Validate that the title is either None or a non-empty string.
     @param title:
     @return:
     """
+    logger.info(f"Validating title {title}")
+
     if title is None:
-        raise ValueError(f"Invalid title {title}provided.")
+        raise ValueError(f"Invalid title {title}provided. Can't be none")
     if not isinstance(title, str):
-        raise ValueError(f"Invalid title {title}provided.")
+        raise ValueError(f"Invalid title {title}provided. Must be a str instance.")
     if len(title.strip()) == 0:
-        raise ValueError(f"Invalid title {title}provided.")
+        raise ValueError(f"Invalid title {title}provided. Can be an empty string")
     return title
 
 

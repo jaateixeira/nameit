@@ -141,12 +141,12 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     print ("TODO implement validate authors")
     sys.exit()
 
-    # Formatting the information
-    authors_str = format_author_names(raw_authors)
-    title_str = " ".join(raw_title) if raw_title else "No title available via CrossRef API"
-    year_str = " ".join(str(raw_year)) if raw_year else "No year available via CrossRef API"
-    publication_str = " ".join(str(raw_publication) if raw_publication else "No container title (e.g. journal name) available via CrossRef API")
-    publisher_str = "".join(str(raw_publisher)) publisher if publisher else "No publisher available via CrossRef API"
+    # Formatting the information --> implement method in publiscaiton objecg
+    #authors_str = format_author_names(raw_authors)
+    #title_str = " ".join(raw_title) if raw_title else "No title available via CrossRef API"
+    #year_str = " ".join(str(raw_year)) if raw_year else "No year available via CrossRef API"
+    #publication_str = " ".join(str(raw_publication) if raw_publication else "No container title (e.g. journal name) available via CrossRef API")
+    #publisher_str = "".join(str(raw_publisher)) publisher if publisher else "No publisher available via CrossRef API"
 
 
 
