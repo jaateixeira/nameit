@@ -8,9 +8,15 @@ from typing import Optional, Dict, Any
 # Opening PDF file, reading the first page and extracting DOI with a very common patter
 import fitz  # PyMuPDF
 
+# To query CrossRef API online
 from habanero import Crossref
 
+# For caching habanero API requests to CrossRef
+import requests_cache
+
 from rich.table import Table
+
+
 
 from utils.unified_console import console
 from utils.unified_logger import logger
@@ -28,6 +34,8 @@ from utils.validators import (
 
 from models.data_models import Publication
 
+# Enable caching with 1-year expiration
+requests_cache.install_cache('crossref_cache', expire_after=31536000)  #
 
 def format_author_names(authors: list) -> str:
     """
@@ -218,7 +226,7 @@ def fetch_metadata_by_doi(doi: str) -> Optional[Dict[str, Any]]:
             Optional[Dict[str, Any]]: The metadata associated with the DOI if successful, otherwise None.
         """
     try:
-        cr = Crossref()
+        cr = Crossref(mailto="jose.teixeira@abo.fi")
         metadata = cr.works(doi)
 
         if metadata:
