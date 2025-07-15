@@ -51,14 +51,18 @@ def validate_family_names_in_metadata_retrieved_from_cross_ref(meta_data_authors
     return meta_data_authors
 
 
-def validate_title(title: Optional[str]) -> bool:
+def validate_title(title: Optional[str]) -> str:
     """Validate that the title is either None or a non-empty string.
     @param title:
     @return:
     """
     if title is None:
-        return True
-    return not (not isinstance(title, str) or not title.strip())
+        raise ValueError(f"Invalid title {title}provided.")
+    if not isinstance(title, str):
+        raise ValueError(f"Invalid title {title}provided.")
+    if len(title.strip()) == 0:
+        raise ValueError(f"Invalid title {title}provided.")
+    return title
 
 
 def validate_year(pub_year: int) -> int:
@@ -70,9 +74,11 @@ def validate_year(pub_year: int) -> int:
         raise ValueError("Invalid year provided.")
 
 
-def validate_journal(journal: str) -> bool:
+def validate_journal(journal: str) -> str:
     """Validate that the journal is a non-empty string."""
-    return isinstance(journal, str) and journal.strip()
+    if not isinstance(journal, str) and journal.strip():
+        raise ValueError("Invalid journal name provided.")
+    return journal
 
 
 def validate_publication(publication: Dict) -> Dict:

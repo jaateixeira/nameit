@@ -128,13 +128,18 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     valid_table.add_column("Value", style="magenta")
 
     # Adding rows
-    valid_table.add_row("Authors", authors_str)
-    valid_table.add_row("Year", str(year) if year else "No year available")
-    valid_table.add_row("Title", title_str)
-    valid_table.add_row("Publication", container_title_str)
-    raw_table.add_row("Publisher", f"{publisher_str}.pdf")
+    valid_table.add_row("Authors", str(valid_authors))
+    valid_table.add_row("format_author_names(Authors)", format_author_names(valid_authors))
+    valid_table.add_row("Year", str(valid_year) if valid_year else "No year available")
+    valid_table.add_row("Title", valid_title)
+    valid_table.add_row("Publication", valid_publication)
+    raw_table.add_row("Publisher", valid_publisher)
 
     console.print(raw_table)
+
+    # Implment validate authors
+    print ("TODO implement validate authors")
+    sys.exit()
 
     # Formatting the information
     authors_str = format_author_names(raw_authors)
