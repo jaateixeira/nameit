@@ -11,7 +11,7 @@ import argparse
 import os
 
 
-from NameItCrossRef import extract_metadata_from_crossref_using_doi_in_pdf
+from NameItCrossRef import extract_publication_metadata_from_crossref_using_doi_in_pdf
 from models.error_model import ErrorModel
 from models.exceptions import InvalidNameItPath
 
@@ -82,17 +82,16 @@ def remove_invalid_characters(text):
 
 
 # Saving required information from the metadata to the file and removing invalid characters
-def rename_pdf_file(pdf_file, metadata):
-    logger.info(f"renaming pdf file  {pdf_file}")
+def rename_pdf_file(pdf_file:os.path, new_file_name:str) -> None:
+    logger.info(f"renaming pdf file  {pdf_file} to {new_file_name}")
 
-    publication = validate_metadata(metadata)
-    new_filename = (str(publication))
-
-    os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_filename))
-    return new_filename
+    os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_file_name))
 
 
-def process_folder_or_file(file_path: str, args: argparse.Namespace) -> None:
+    return None
+
+
+def process_folder_or_file(file_path: str, cli_args: argparse.Namespace) -> None:
     """
     Process either a folder or a PDF file based on the given path and arguments.
 
@@ -102,7 +101,7 @@ def process_folder_or_file(file_path: str, args: argparse.Namespace) -> None:
 
     Args:
         file_path (str): The path to either a directory or a PDF file to be processed.
-        args (Any): Command line arguments object containing processing options:
+        cli_args (Any): Command line arguments object containing processing options:
             - use_pdf_metadata (bool): Whether to use PDF embedded metadata
             - use_crossref (bool): Whether to use Crossref API
             - use_layoutlmv3 (bool): Whether to use LayoutLMv3 model
@@ -112,7 +111,7 @@ def process_folder_or_file(file_path: str, args: argparse.Namespace) -> None:
 
     Raises:
         SystemExit: If an invalid processing method is specified or if the input path is invalid.
-        @param args:
+        @param cli_args:
         @param file_path:
     """
     try:
@@ -130,12 +129,12 @@ def process_folder_or_file(file_path: str, args: argparse.Namespace) -> None:
     if os.path.isdir(file_path):
         process_folder(file_path)
 
-    # Handle PDF file case
+    # Handle if the path is a single pdf file
     elif os.path.isfile(file_path) and path.lower().endswith('.pdf'):
         # Verify at least one processing method is specified
-        if args.use_pdf_metadata or args.use_crossref or args.use_layoutlmv3:
+        if cli_args.use_pdf_metadata or cli_args.use_crossref or cli_args.use_layoutlmv3:
             pdf_file = file_path
-            metadata = extract_metadata_from_crossref_using_doi_in_pdf(pdf_file)
+            extracted_publication_from_crossref_api = extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file)
         else:
             console.print("[red]Method not known.[/red]")
             console.print("[blue]Are you sure you don't want to use pdf metadata? "
@@ -143,8 +142,8 @@ def process_folder_or_file(file_path: str, args: argparse.Namespace) -> None:
             sys.exit()
 
         # Process metadata if found
-        if metadata:
-            new_file_name = rename_pdf_file(pdf_file, metadata)
+        if extracted_publication_from_crossref_api:
+            new_file_name = rename_pdf_file(pdf_file,str(extracted_publication_from_crossref_api))
             if new_file_name:
                 console.print(f"[green]File renamed to: {new_file_name}[/green]")
         else:
@@ -159,9 +158,9 @@ def process_folder(folder_path):
         for file in files:
             if file.endswith(".pdf"):
                 pdf_file = os.path.join(root, file)
-                metadata = extract_metadata_from_crossref_using_doi_in_pdf(file)
-                if metadata:
-                    new_file_name = rename_pdf_file(pdf_file, metadata)
+                extracted_publication_from_crossref_api = extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file)
+                if extracted_publication_from_crossref_api:
+                    new_file_name = rename_pdf_file(pdf_file, str(extracted_publication_from_crossref_api))
                     if new_file_name:
                         console.print(f"[green]File renamed to: {new_file_name}[/green]")
                 else:

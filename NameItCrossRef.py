@@ -160,12 +160,10 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
         publication=valid_publication,
         publisher=valid_publisher)
 
-    console.print(f"{publication=}")
-
     return publication
 
 
-def extract_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Optional[Dict]:
+def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Publication | None:
     """
         Extract metadata from a PDF file by identifying the DOI on the first page and fetching its metadata.
 
@@ -192,14 +190,18 @@ def extract_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Optional[D
             doi = doi_match.group()
             logger.info(f"Extracting DOI: {doi} from file: {pdf_file}")
 
-            meta_data_fetched_via_CrossRef_API = fetch_metadata_by_doi(doi)
+            meta_data_fetched_via_CrossRef_API: dict[str, Any] | None = fetch_metadata_by_doi(doi)
 
             console.print("\n [bold green]. CrossRef API returned metadata 😀")
             console.print("\n [bold blue]. Time to validate the returned metadata")
 
-            if validate_crossref_returned_meta_data(meta_data_fetched_via_CrossRef_API):
-                console.print("\n [bold green]. CrossRef API returned metadata was validated 😀")
-                return meta_data_fetched_via_CrossRef_API
+            article_publication: Publication = validate_crossref_returned_meta_data(meta_data_fetched_via_CrossRef_API)
+
+            if article_publication:
+                console.print(f"\n [bold green]. CrossRef API returned metadata was validated 😀")
+                console.print(f"\n [bold green]. {article_publication=} 😀")
+                console.print(f"\n [bold green]. {str(article_publication)=} 😀")
+                return article_publication
             else:
                 console.print("\n [bold red]. The metadata returned by CrossRef is invalid")
                 return None
