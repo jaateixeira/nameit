@@ -18,9 +18,11 @@
   ✅ Mock tests for file system operations  
 
 - [ ] **Acceptance Testing**  
-  ✅ 30+ real-world PDF test cases (varying metadata, special chars)  
+  ✅ 30+ real-world PDF test cases (varying metadata, special chars)
+  ✅ All files executable as runnig tests 
   ✅ Automated test harness with `pytest-bdd`  
-  ✅ Cross-platform validation (Linux and macOS)  
+  ✅ Cross-platform validation (Linux and macOS)
+  ✅ Fully tests using keywords and CrossRef approach
 
 #### Code Quality
 - [ ] **Pythonic Improvements**  
