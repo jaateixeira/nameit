@@ -17,8 +17,6 @@ import requests_cache
 
 from rich.table import Table
 
-
-
 from utils.unified_console import console
 from utils.unified_logger import logger
 
@@ -38,6 +36,7 @@ from models.data_models import Publication
 
 # Enable caching with 1-year expiration
 requests_cache.install_cache('crossref_cache', expire_after=31536000)  #
+
 
 def format_author_names(authors: list) -> str:
     """
@@ -89,7 +88,7 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     raw_publisher = meta_data['message']['publisher'] if 'publisher' in meta_data['message'] else 'Unknown publisher'
 
     progress_message: str = (
-                             " [bold green]. Picking the relevant data from the metadata returned from CrossRef")
+        " [bold green]. Picking the relevant data from the metadata returned from CrossRef")
     console.print(progress_message)
     logger.info(progress_message)
 
@@ -114,7 +113,6 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     raw_table.add_row("Publication", raw_publication)
     raw_table.add_row("Publisher", raw_publisher)
 
-
     console.print(raw_table)
 
     progress_message: str = "Validating the metadata returned from CrossRef"
@@ -132,7 +130,7 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     valid_year = validate_year(raw_year)
     valid_title = validate_title(raw_title)
     valid_publication = validate_journal(raw_publication)
-    valid_publisher = validate_publisher_name(raw_publisher)
+    valid_publisher: str = validate_publisher_name(raw_publisher)
 
     progress_message: str = "Printing the relevant and validated metadata returned from CrossRef"
     console.print(progress_message)
@@ -155,12 +153,13 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
 
     console.print(valid_table)
 
-
-    publication = Publication(format_author_names(valid_authors),valid_year,valid_title,valid_publication,valid_publisher)
+    publication = Publication(format_author_names(valid_authors), valid_year, valid_title, valid_publication,
+                              valid_publisher)
 
     console.print(f"{publication=}")
 
     return publication
+
 
 def extract_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Optional[Dict]:
     """
@@ -241,7 +240,6 @@ def fetch_metadata_by_doi(doi: str) -> Optional[Dict[str, Any]]:
 
         if not valid_crossref_metadata(metadata):
             raise InvalidCrossrefDataError(f"Invalid CrossRefData. Did not pass valid_crossref_metadata")
-
 
         logger.info(f"Successfully extracted metadata for DOI: {doi} through crossref.org")
         #console.print(metadata)  # Use rich to print the metadata

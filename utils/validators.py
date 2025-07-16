@@ -14,7 +14,8 @@ from jsonschema import validate, ValidationError
 from utils.unified_console import console
 from utils.unified_logger import logger
 
-from models.exceptions import InvalidCrossrefDataError
+from models.exceptions import InvalidCrossrefDataError, NameItError
+
 
 def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""
@@ -404,11 +405,13 @@ def validate_container_title(container_title):
 
 
 # Validate that the publisher field is a string
-def validate_publisher(publisher):
+def validate_publisher(publisher:str) -> str:
     if not isinstance(publisher, str):
-        logger.error(f"Publisher is not a string: {publisher}")
-        return False
-    return True
+        error_mesg = f"Publisher is not a string: {publisher}"
+        logger.error(error_mesg)
+        raise NameItError(error_mesg)
+
+    return publisher
 
 
 # Validate that the fetched metadata contains the required information
