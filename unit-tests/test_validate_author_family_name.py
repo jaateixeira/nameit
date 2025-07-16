@@ -1,14 +1,9 @@
-
-
 import unittest
-
 
 from rich.text import Text
 from rich.console import Console
 from rich.table import Table
-from NameIt import validate_author_family_name  # If renamed to NameIt.py
-
-
+from utils.validators import validate_author_family_name  # If renamed to NameIt.py
 
 
 class ColorfulTestResult(unittest.TextTestResult):
@@ -69,8 +64,6 @@ class ColorfulTestResult(unittest.TextTestResult):
 
 
 class TestValidateAuthorFamilyName(unittest.TestCase):
-
-    @unittest.skip("Temporarily disabled - for allowing GitHub Action CI/CD pipeline")
     def test_valid_names(self):
         """Test valid family names including spaces and UTF-8 characters"""
         self.assertTrue(validate_author_family_name("de Van"))
@@ -109,7 +102,7 @@ class TestValidateAuthorFamilyName(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_author_family_name(" - ")  # Punctuation only
 
-    def test_invalid_characters(self):
+    def test_author_family_name_with_invalid_characters(self):
         """Test names with invalid characters"""
         with self.assertRaises(ValueError):
             validate_author_family_name("Sm1th")  # Contains number
@@ -120,13 +113,15 @@ class TestValidateAuthorFamilyName(unittest.TestCase):
 
     def test_capitalization(self):
         """Test improper capitalization"""
+
         with self.assertRaises(ValueError):
             validate_author_family_name("garcía lópez")  # Lowercase first letter
         with self.assertRaises(ValueError):
             validate_author_family_name("müller van den berg")  # Lowercase first letter
         with self.assertRaises(ValueError):
             validate_author_family_name("íñigo montoya")  # Lowercase accented first letter
-    @unittest.skip("Temporarily disabled - for allowing GitHub Action CI/CD pipeline")
+
+
     def test_special_cases(self):
         """Test special cases and edge cases"""
         # Valid names with prefixes
