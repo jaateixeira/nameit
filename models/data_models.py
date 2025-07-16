@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from typing import List, Optional
 from nameparser import HumanName
@@ -9,7 +10,7 @@ from utils.validators import (
     validate_journal,
     validate_year,
     validate_author,
-    validate_publication
+    validate_publication, validate_author_family_name
 )
 
 
@@ -39,30 +40,82 @@ class Publication:
     year: int
     title: str
     journal: str
-    publication:str
+    publication: str
+    publisher:str
 
+    @property
     def validate(self) -> dict:
         publication_data = {
-            "title": self.title,
-            "journal": self.journal,
-            "year": self.year,
-            "authors": [{"full_name": author.full_name} for author in self.authors]
+            "title": validate_title(self.title),
+            "journal": validate_journal(self.journal),
+            "year": validate_year(self.year),
+            "authors": validate_author_family_name(self.authors)
         }
 
         return validate_publication(publication_data)
+
+
+    def _clean_filename_part(self, text: str) -> str:
+        # Replace forbidden characters with safe equivalents
+        return re.sub(r'[\\:*?"<>|/]', '', text).strip()
+
+    def _short_publisher(self) -> str:
+        mapping = {
+            "Springer International Publishing": "Springer",
+            "Sage UK": "Sage",
+            "Association for Information Systems": "AIS",
+            "Association for Computing Machinery": "ACM",
+            "Institute of Electrical and Electronics Engineers": "IEEE",
+            "Cambridge": "MIT Press",
+            "MIT Press": "MIT Press",
+            "Elsevier": "Elsevier",
+            "Emerald Group Publishing Limited": "Emerald",
+            "Emerald": "Emerald",
+        }
+        for long, short in mapping.items():
+            if long.lower() in self.publisher.lower():
+                return short
+        return self.publisher  # fallback
+
+    def _format_authors(self) -> str:
+        # Normalize names and split on common delimiters
+        authors = re.split(r'\s*(?:and|&|,)\s*', self.authors)
+        first = authors[0].strip()
+        surname_match = re.search(r'([A-ZÅÄÖÁÉÍÓÚÑ][a-zà-ž]*)$', first)
+        surname = surname_match.group(1) if surname_match else first
+        return f"{surname} et al." if len(authors) > 2 else surname
+
+    def __str__(self) -> str:
+        author_str = self._format_authors()
+        year_str = f"({self.year})"
+        journal_str = self._clean_filename_part(self.journal)
+        publisher_str = self._short_publisher()
+
+        title_clean = self._clean_filename_part(self.title)
+        base = f"{author_str} {year_str}. {title_clean}. {journal_str}. {publisher_str}.pdf"
+
+        # Cut title if filename is over 255 characters
+        max_len = 255
+        if len(base) > max_len:
+            over = len(base) - max_len
+            cut_title = title_clean[:-over-3] + "..."  # show it's trimmed
+            base = f"{author_str} {year_str}. {cut_title}. {journal_str}. {publisher_str}.pdf"
+
+        return base
+
 
 if __name__ == "__main__":
     # Example usage
     author1 = Author(full_name="Dr. John von Doe Jr.")
     author2 = Author(full_name="Jane Smith")
     publication = Publication(
-    title="An Example Title",
-    journal="Journal of Examples",
-    year=2022,
-    authors=[author1, author2])
+        title="An Example Title",
+        journal="Journal of Examples",
+        year=2022,
+        authors=[author1, author2])
 
     # Validate the publication
-    validation_errors = publication.validate()
+    validation_errors = publication.validate
     if not validation_errors:
         print("Publication data is valid.")
     else:
