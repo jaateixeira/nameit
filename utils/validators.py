@@ -158,7 +158,9 @@ def validate_title(retrieved_article_title: str) -> str:
 
 
 def validate_year(pub_year: int) -> int:
-    """Validate that the year is a reasonable value."""
+    """Validate that the year is a reasonable value.
+    @rtype: object
+    """
     current_year = datetime.now().year
     if 1900 <= pub_year <= current_year:
         return pub_year
