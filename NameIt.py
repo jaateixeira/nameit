@@ -86,21 +86,7 @@ def rename_pdf_file(pdf_file, metadata):
     logger.info(f"renaming pdf file  {pdf_file}")
 
     publication = validate_metadata(metadata)
-
-
-    max_title_length = 255 - len(publication.) - len(str(year)) - len(cleaned_publication) - len(
-        cleaned_publisher) - len(" () ... @  - .pdf")
-
-    if len(cleaned_title) <= max_title_length:
-        cleaned_title = cleaned_title
-    else:
-        cleaned_title = cleaned_title[:max_title_length] + "..."
-
-    new_filename = (f"{cleaned_author_names}"
-                    f" ({cleaned_year})"
-                    f" {cleaned_title} "
-                    f"@ {cleaned_publication} "
-                    f"- {cleaned_publisher}.pdf")
+    new_filename = (str(publication))
 
     os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_filename))
     return new_filename

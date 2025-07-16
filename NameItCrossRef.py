@@ -153,8 +153,12 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
 
     console.print(valid_table)
 
-    publication = Publication(format_author_names(valid_authors), valid_year, valid_title, valid_publication,
-                              valid_publisher)
+    publication = Publication(
+        authors=format_author_names(valid_authors),
+        year=valid_year,
+        title=valid_title,
+        publication=valid_publication,
+        publisher=valid_publisher)
 
     console.print(f"{publication=}")
 

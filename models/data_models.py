@@ -10,7 +10,7 @@ from utils.validators import (
     validate_journal,
     validate_year,
     validate_author,
-    validate_publication, validate_author_family_name
+    validate_publication, validate_author_family_name, validate_publisher
 )
 
 
@@ -21,7 +21,7 @@ class Author:
     first_name: Optional[str] = field(init=False)
     last_name: Optional[str] = field(init=False)
     suffix: Optional[str] = field(init=False)
-    title: Optional[str] = field(init=False)
+    author_title: Optional[str] = field(init=False)
 
     def __post_init__(self):
         name = HumanName(self.full_name)
@@ -34,30 +34,30 @@ class Author:
         return validate_author({"full_name": self.full_name})
 
 
+def _clean_filename_part(text: str) -> str:
+    # Replace forbidden characters with safe equivalents
+    return re.sub(r'[\\:*?"<>|/]', '', text).strip()
+
+
 @dataclass
 class Publication:
     authors: str
     year: int
     title: str
-    journal: str
     publication: str
-    publisher:str
+    publisher: str
 
     @property
     def validate(self) -> dict:
         publication_data = {
-            "title": validate_title(self.title),
-            "journal": validate_journal(self.journal),
+            "authors": validate_author_family_name(self.authors),
             "year": validate_year(self.year),
-            "authors": validate_author_family_name(self.authors)
+            "title": validate_title(self.title),
+            "publication": validate_journal(self.journal),
+            "publisher": validate_publisher(self.publisher)
         }
 
         return validate_publication(publication_data)
-
-
-    def _clean_filename_part(self, text: str) -> str:
-        # Replace forbidden characters with safe equivalents
-        return re.sub(r'[\\:*?"<>|/]', '', text).strip()
 
     def _short_publisher(self) -> str:
         mapping = {
@@ -88,18 +88,18 @@ class Publication:
     def __str__(self) -> str:
         author_str = self._format_authors()
         year_str = f"({self.year})"
-        journal_str = self._clean_filename_part(self.journal)
+        publication_str = _clean_filename_part(self.publication)
         publisher_str = self._short_publisher()
 
-        title_clean = self._clean_filename_part(self.title)
-        base = f"{author_str} {year_str}. {title_clean}. {journal_str}. {publisher_str}.pdf"
+        title_clean = _clean_filename_part(self.title)
+        base = f"{author_str} {year_str}. {title_clean}. {publication_str}. {publisher_str}.pdf"
 
         # Cut title if filename is over 255 characters
         max_len = 255
         if len(base) > max_len:
             over = len(base) - max_len
-            cut_title = title_clean[:-over-3] + "..."  # show it's trimmed
-            base = f"{author_str} {year_str}. {cut_title}. {journal_str}. {publisher_str}.pdf"
+            cut_title = title_clean[:-over - 3] + "..."  # show it's trimmed
+            base = f"{author_str} {year_str}. {cut_title}. {publication_str}. {publisher_str}.pdf"
 
         return base
 
@@ -112,7 +112,8 @@ if __name__ == "__main__":
         title="An Example Title",
         journal="Journal of Examples",
         year=2022,
-        authors=[author1, author2])
+        authors=[author1, author2],
+        publisher="Nature")
 
     # Validate the publication
     validation_errors = publication.validate
