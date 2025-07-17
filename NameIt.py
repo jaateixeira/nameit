@@ -138,11 +138,12 @@ def process_folder_or_file(nameit_path: os.path, cli_args: argparse.Namespace) -
                 process_folder_or_file(filename, cli_args)
 
     # Handle if the path is a single pdf file
-    elif os.path.isfile(path) and path.lower().endswith('.pdf'):
+    elif os.path.isfile(nameit_path) and path.lower().endswith('.pdf'):
         # Verify at least one processing method is specified
         if cli_args.use_pdf_metadata or cli_args.use_crossref or cli_args.use_layoutlmv3:
-            pdf_file_path = path
-            extracted_publication_from_crossref_api = extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file_path)
+            pdf_file_path = nameit_path
+            extracted_publication_from_crossref_api = (
+                extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file_path))
         else:
             console.print("[red]Method not known.[/red]")
             console.print("[blue]Are you sure you don't want to use pdf metadata? "
