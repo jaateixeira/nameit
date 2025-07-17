@@ -4,7 +4,7 @@ from models.exceptions import InvalidCrossrefDataError
 from utils.unified_logger import console, logger
 
 import re
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 # Opening PDF file, reading the first page and extracting DOI with a very common patter
 import fitz  # PyMuPDF
@@ -163,7 +163,9 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     return publication
 
 
-def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Publication | None:
+def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Union[Publication, None]:
+    ...
+
     """
         Extract metadata from a PDF file by identifying the DOI on the first page and fetching its metadata.
 
@@ -190,7 +192,7 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
             doi = doi_match.group()
             logger.info(f"Extracting DOI: {doi} from file: {pdf_file}")
 
-            meta_data_fetched_via_CrossRef_API: dict[str, Any] | None = fetch_metadata_by_doi(doi)
+            meta_data_fetched_via_CrossRef_API: Union[Publication,None] = fetch_metadata_by_doi(doi)
 
             console.print("\n [bold green]. CrossRef API returned metadata 😀")
             console.print("\n [bold blue]. Time to validate the returned metadata")
