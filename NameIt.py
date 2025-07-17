@@ -91,7 +91,7 @@ def rename_pdf_file(pdf_file:os.path, new_file_name:str) -> None:
     return None
 
 
-def process_folder_or_file(file_path: str, cli_args: argparse.Namespace) -> None:
+def process_folder_or_file(path: os.path, cli_args: argparse.Namespace) -> None:
     """
     Process either a folder or a PDF file based on the given path and arguments.
 
@@ -100,7 +100,7 @@ def process_folder_or_file(file_path: str, cli_args: argparse.Namespace) -> None
     extraction method is determined by the provided arguments.
 
     Args:
-        file_path (str): The path to either a directory or a PDF file to be processed.
+        path (os.path): The path to either a directory or a PDF file to be processed.
         cli_args (Any): Command line arguments object containing processing options:
             - use_pdf_metadata (bool): Whether to use PDF embedded metadata
             - use_crossref (bool): Whether to use Crossref API
@@ -115,7 +115,7 @@ def process_folder_or_file(file_path: str, cli_args: argparse.Namespace) -> None
         @param file_path:
     """
     try:
-        valid_path(file_path)
+        valid_path(path)
     except InvalidNameItPath as e:
         error = ErrorModel.capture(e)
         error.display_user_friendly()
@@ -126,15 +126,17 @@ def process_folder_or_file(file_path: str, cli_args: argparse.Namespace) -> None
         )
 
     # Test if the path is a directory
-    if os.path.isdir(file_path):
-        process_folder(file_path)
+    if os.path.isdir(path):
+        for root, _, files in os.walk(path):
+            for file in files:
+                process_folder_or_file(file,cli_args)
 
     # Handle if the path is a single pdf file
-    elif os.path.isfile(file_path) and path.lower().endswith('.pdf'):
+    elif os.path.isfile(path) and path.lower().endswith('.pdf'):
         # Verify at least one processing method is specified
         if cli_args.use_pdf_metadata or cli_args.use_crossref or cli_args.use_layoutlmv3:
-            pdf_file = file_path
-            extracted_publication_from_crossref_api = extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file)
+            pdf_file_path = path
+            extracted_publication_from_crossref_api = extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file_path)
         else:
             console.print("[red]Method not known.[/red]")
             console.print("[blue]Are you sure you don't want to use pdf metadata? "
@@ -143,16 +145,17 @@ def process_folder_or_file(file_path: str, cli_args: argparse.Namespace) -> None
 
         # Process metadata if found
         if extracted_publication_from_crossref_api:
-            new_file_name = rename_pdf_file(pdf_file,str(extracted_publication_from_crossref_api))
+            new_file_name = rename_pdf_file(pdf_file_path,str(extracted_publication_from_crossref_api))
             if new_file_name:
                 console.print(f"[green]File renamed to: {new_file_name}[/green]")
         else:
-            console.print(f"[yellow]DOI not found in {pdf_file}.[/yellow]")
+            console.print(f"[yellow]DOI not found in {pdf_file_path}.[/yellow]")
     else:
         console.print("[red]Invalid input. Please provide a valid folder path or PDF file path.[/red]")
 
 
 # Processing folder
+"No longer used in current version"
 def process_folder(folder_path):
     for root, _, files in os.walk(folder_path):
         for file in files:
