@@ -163,9 +163,8 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
     return publication
 
 
-def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Union[Publication, None]:
-    ...
 
+def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Union[Publication, None]:
     """
         Extract metadata from a PDF file by identifying the DOI on the first page and fetching its metadata.
 
@@ -191,6 +190,7 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
         if doi_match:
             doi = doi_match.group()
             logger.info(f"Extracting DOI: {doi} from file: {pdf_file}")
+
 
             meta_data_fetched_via_CrossRef_API: Union[Publication,None] = fetch_metadata_by_doi(doi)
 
