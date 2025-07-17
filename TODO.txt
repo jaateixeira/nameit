@@ -1,5 +1,7 @@
 TODO ASAP
 
+Add support for recursive naming and single directly
+
 Make the exception invalid cross ref data to be raised
 Should create and return a publication
 
