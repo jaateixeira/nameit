@@ -91,7 +91,23 @@ def rename_pdf_file(pdf_file:os.path, new_file_name:str) -> None:
     return None
 
 
-def process_folder_or_file(nameit_path: os.path, cli_args: argparse.Namespace) -> None:
+
+def process_folder_or_file_dry_run(nameit_path: os.PathLike, cli_args: argparse.Namespace) -> None:
+    """
+    Simulates processing by printing all files and directories found at the specified path.
+
+    If the CLI arguments include the --recursive (-r) flag, the function traverses directories recursively.
+    Otherwise, it only lists items at the top level of the provided path.
+
+    Args:
+        nameit_path (os.PathLike): The path to a file or directory to inspect.
+        cli_args (argparse.Namespace): Parsed command-line arguments. Should include an optional 'recursive' attribute.
+
+    Returns:
+        None
+    """
+
+def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespace) -> None:
     """
     Process either a folder or a PDF file based on the given path and arguments.
 
@@ -197,4 +213,5 @@ if __name__ == "__main__":
 
     path = args.path
 
-    process_folder_or_file(path, args)
+    process_folder_or_file_dry_run(path,args)
+    #process_folder_or_file(path, args)
