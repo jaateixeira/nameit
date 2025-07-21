@@ -115,22 +115,6 @@ def process_folder_or_file(nameit_path: os.path, cli_args: argparse.Namespace) -
         @param cli_args:
 
     """
-    try:
-        valid_path(nameit_path)
-    except (InvalidNameItPath) as e:
-        error = ErrorModel.capture(e)
-        error.display_user_friendly()
-        raise InvalidNameItPath(
-            path=nameit_path,
-            reason="Invalid path",
-            suggestion="Check file extension, or provide a different file or directory."
-        )
-        console.print(f"[red] Invalid file path {nameit_path}[/red]")
-        console.print(f"[blue] Caught exception:{e}")
-
-    except (argparse.ArgumentTypeError) as e:
-        console.print(f"[red] Argument file path {nameit_path}[/red]")
-        console.print(f"[blue] Caught exception:{e}")
 
 
     # Test if the path is a directory
@@ -146,6 +130,29 @@ def process_folder_or_file(nameit_path: os.path, cli_args: argparse.Namespace) -
 
     # Handle if the path is a single pdf file
     elif os.path.isfile(nameit_path) and path.lower().endswith('.pdf'):
+
+        try:
+            logger.info(f"validating path {nameit_path}")
+            validated_path = valid_path(nameit_path)
+            if validated_path:
+                logger.info(f"path {validated_path} is validated without raising exceptions")
+            else:
+                return None
+        except InvalidNameItPath as e:
+            error = ErrorModel.capture(e)
+            error.display_user_friendly()
+            raise InvalidNameItPath(
+                path=nameit_path,
+                reason="Invalid path",
+                suggestion="Check file extension, or provide a different file or directory."
+            )
+            console.print(f"[red] Invalid file path {nameit_path}[/red]")
+            console.print(f"[blue] Caught exception:{e}")
+
+        except (argparse.ArgumentTypeError) as e:
+            console.print(f"[red] Argument file path {nameit_path}[/red]")
+            console.print(f"[blue] Caught exception:{e}")
+
         # Verify at least one processing method is specified
         if cli_args.use_pdf_metadata or cli_args.use_crossref or cli_args.use_layoutlmv3:
             pdf_file_path = nameit_path
@@ -164,8 +171,6 @@ def process_folder_or_file(nameit_path: os.path, cli_args: argparse.Namespace) -
                 console.print(f"[green]File renamed to: {new_file_name}[/green]")
         else:
             console.print(f"[yellow]DOI not found in {pdf_file_path}.[/yellow]")
-    else:
-        console.print("[red]Invalid input. Please provide a valid folder path or PDF file path.[/red]")
 
 
 # Main code
