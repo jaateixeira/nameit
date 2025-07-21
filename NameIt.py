@@ -117,7 +117,7 @@ def process_folder_or_file(nameit_path: os.path, cli_args: argparse.Namespace) -
     """
     try:
         valid_path(nameit_path)
-    except InvalidNameItPath as e:
+    except (InvalidNameItPath) as e:
         error = ErrorModel.capture(e)
         error.display_user_friendly()
         raise InvalidNameItPath(
@@ -125,6 +125,13 @@ def process_folder_or_file(nameit_path: os.path, cli_args: argparse.Namespace) -
             reason="Invalid path",
             suggestion="Check file extension, or provide a different file or directory."
         )
+        console.print(f"[red] Invalid file path {nameit_path}[/red]")
+        console.print(f"[blue] Caught exception:{e}")
+
+    except (argparse.ArgumentTypeError) as e:
+        console.print(f"[red] Argument file path {nameit_path}[/red]")
+        console.print(f"[blue] Caught exception:{e}")
+
 
     # Test if the path is a directory
     if os.path.isdir(nameit_path):
@@ -135,7 +142,7 @@ def process_folder_or_file(nameit_path: os.path, cli_args: argparse.Namespace) -
 
             # Goes after files
             for filename in files:
-                process_folder_or_file(filename, cli_args)
+                process_folder_or_file(root+filename, cli_args)
 
     # Handle if the path is a single pdf file
     elif os.path.isfile(nameit_path) and path.lower().endswith('.pdf'):
