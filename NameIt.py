@@ -10,6 +10,15 @@ import unicodedata
 import argparse
 import os
 
+from pathlib import Path
+from typing import  Union, Dict
+
+PathLike = Union[str, os.PathLike, Path]  # All supported path types
+
+
+from rich.panel import Panel
+from rich.table import Table
+
 
 from NameItCrossRef import extract_publication_metadata_from_crossref_using_doi_in_pdf
 from models.error_model import ErrorModel
@@ -92,20 +101,97 @@ def rename_pdf_file(pdf_file:os.path, new_file_name:str) -> None:
 
 
 
-def process_folder_or_file_dry_run(nameit_path: os.PathLike, cli_args: argparse.Namespace) -> None:
+def process_folder_or_file_dry_run(
+        nameit_path: PathLike,
+        cli_args: argparse.Namespace,
+) -> None:
     """
-    Simulates processing by printing all files and directories found at the specified path.
-
-    If the CLI arguments include the --recursive (-r) flag, the function traverses directories recursively.
-    Otherwise, it only lists items at the top level of the provided path.
+    Simulates processing by recursively listing all files and directories found at the specified path,
+    counting PDF files, and displaying a summary of rename operations that would occur.
 
     Args:
-        nameit_path (os.PathLike): The path to a file or directory to inspect.
-        cli_args (argparse.Namespace): Parsed command-line arguments. Should include an optional 'recursive' attribute.
+        nameit_path: The path to a file or directory (accepts str, os.PathLike, or Path)
+        cli_args: Parsed command-line arguments with these attributes:
+            - recursive (bool): Whether to traverse directories recursively
+            - verbose (bool): Show detailed output
+            - debug (bool): Show debug information
 
     Returns:
-        None
+        Dictionary mapping original paths to their proposed new paths
     """
+    # Convert input to Path object regardless of input type
+    normalized_path = Path(nameit_path) if not isinstance(nameit_path, Path) else nameit_path
+
+    pdf_count: int = 0
+    dir_count: int  = 0
+
+    rename_operations: Dict[Path, Path] = {}
+
+    # Initialize summary table
+    summary_table = Table(title="Dry Run Summary", show_header=True, header_style="bold magenta")
+    summary_table.add_column("Metric", style="cyan")
+    summary_table.add_column("Count", style="green")
+
+
+    console.print(f"[yellow]DEBUG: Starting dry run for path: {normalized_path}[/yellow]")
+
+    if not normalized_path.exists():
+        console.print(f"[red]Error: Path does not exist - {normalized_path}[/red]")
+        return None
+
+    def process_item(item: Path, depth: int = 0) -> None:
+        nonlocal pdf_count, dir_count
+        indent = "  " * depth
+
+        if item.is_dir():
+            dir_count += 1
+            if cli_args.verbose:
+                console.print(f"{indent}[blue]DIR: {item.name}[/blue]")
+
+            if cli_args.recursive:
+                try:
+                    for child in sorted(item.iterdir()):
+                        process_item(child, depth + 1)
+                except PermissionError:
+                    if cli_args.debug:
+                        console.print(f"{indent}[red]Permission denied: {item}[/red]")
+
+        elif item.is_file():
+            if item.suffix.lower() == '.pdf':
+                pdf_count += 1
+
+            #if cli_args.verbose:
+                console.print(f"{indent}[green]PDF: {item.name}[/green] → [yellow]{"TODO"}[/yellow]")
+            #elif cli_args.debug:
+                console.print(f"{indent}[dim]FILE: {item.name}[/dim]")
+
+    # Process the initial path
+    if normalized_path.is_file():
+        if normalized_path.suffix.lower() == '.pdf':
+            pdf_count += 1
+
+            console.print(f"[green]PDF: {normalized_path.name}[/green] → [yellow]{"TODO"}[/yellow]")
+    else:
+        try:
+            for item in sorted(normalized_path.iterdir()):
+                process_item(item)
+        except PermissionError:
+            console.print(f"[red]Permission denied accessing directory: {path}[/red]")
+
+    # Generate summary
+    summary_table.add_row("Total Directories", str(dir_count))
+    summary_table.add_row("Total PDF Files", str(pdf_count))
+    summary_table.add_row("PDFs to be Renamed", str(len(rename_operations)))
+
+    console.print(Panel(summary_table, title="[bold]Dry Run Results[/bold]"))
+
+    #if cli_args.debug and rename_operations:
+    console.print("\n[bold yellow]DEBUG: Full rename operations list:[/bold yellow]")
+    for old, new in rename_operations.items():
+        console.print(f"  {old} → {new}")
+
+    return None
+
 
 def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespace) -> None:
     """
@@ -157,14 +243,13 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
         except InvalidNameItPath as e:
             error = ErrorModel.capture(e)
             error.display_user_friendly()
+            console.print(f"[red] Invalid file path {nameit_path}[/red]")
+            console.print(f"[blue] Caught exception:{e}")
             raise InvalidNameItPath(
-                path=nameit_path,
+                path=str(nameit_path),
                 reason="Invalid path",
                 suggestion="Check file extension, or provide a different file or directory."
             )
-            console.print(f"[red] Invalid file path {nameit_path}[/red]")
-            console.print(f"[blue] Caught exception:{e}")
-
         except (argparse.ArgumentTypeError) as e:
             console.print(f"[red] Argument file path {nameit_path}[/red]")
             console.print(f"[blue] Caught exception:{e}")

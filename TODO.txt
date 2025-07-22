@@ -2,6 +2,11 @@ TODO ASAP
 
 Add support for recursive naming and single directly
 
+
+Use srt and pathlib suppor
+
+use -v and -d options
+
 Make the exception invalid cross ref data to be raised
 Should create and return a publication
 
