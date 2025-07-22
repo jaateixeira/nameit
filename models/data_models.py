@@ -15,8 +15,6 @@ from utils.validators import (
     validate_publication, validate_author_family_name, validate_publisher
 )
 
-# Structure to allow functions to accept paths as pathlib paths or str
-PathLike = Union[str, os.PathLike, pathlib.Path]  # All supported path types
 
 
 @dataclass

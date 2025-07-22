@@ -11,7 +11,7 @@ from typing import Optional, Dict, Union, Any
 
 from nameparser import HumanName
 
-from models.data_models import PathLike
+from models.types import PathLike
 from utils.unified_console import console
 from utils.unified_logger import logger
 
