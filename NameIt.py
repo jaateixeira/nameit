@@ -159,6 +159,7 @@ def process_folder_or_file_dry_run(
         elif item.is_file():
             if item.suffix.lower() == '.pdf':
                 pdf_count += 1
+                rename_operations[item] = "TODO"
 
             #if cli_args.verbose:
                 console.print(f"{indent}[green]PDF: {item.name}[/green] → [yellow]{"TODO"}[/yellow]")
@@ -169,6 +170,7 @@ def process_folder_or_file_dry_run(
     if normalized_path.is_file():
         if normalized_path.suffix.lower() == '.pdf':
             pdf_count += 1
+            rename_operations[item] = new_name
 
             console.print(f"[green]PDF: {normalized_path.name}[/green] → [yellow]{"TODO"}[/yellow]")
     else:
