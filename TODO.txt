@@ -2,8 +2,7 @@ TODO ASAP
 
 Add support for recursive naming and single directly
 
-
-Use srt and pathlib suppor
+Use str and pathlib suppor
 
 use -v and -d options
 
