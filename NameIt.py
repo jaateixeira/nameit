@@ -159,26 +159,28 @@ def process_folder_or_file_dry_run(
         elif item.is_file():
             if item.suffix.lower() == '.pdf':
                 pdf_count += 1
-                rename_operations[item] = "TODO"
+                new_name = "TODO"
+                rename_operations[item] = new_name
 
-            #if cli_args.verbose:
-                console.print(f"{indent}[green]PDF: {item.name}[/green] → [yellow]{"TODO"}[/yellow]")
+                #if cli_args.verbose:
+                console.print(f"{indent}[green]PDF: {item.name}[/green] → [yellow]{new_name}[/yellow]")
             #elif cli_args.debug:
-                console.print(f"{indent}[dim]FILE: {item.name}[/dim]")
+            console.print(f"{indent}[dim]FILE: {item.name}[/dim]")
 
-    # Process the initial path
+    # Process the initial normalized_path
     if normalized_path.is_file():
         if normalized_path.suffix.lower() == '.pdf':
             pdf_count += 1
-            rename_operations[item] = new_name
-
-            console.print(f"[green]PDF: {normalized_path.name}[/green] → [yellow]{"TODO"}[/yellow]")
+            new_name = "TODO"
+            rename_operations[normalized_path] = new_name
+            console.print(f"[green]PDF: {normalized_path.name}[/green] → [yellow]{new_name}[/yellow]")
     else:
         try:
             for item in sorted(normalized_path.iterdir()):
                 process_item(item)
         except PermissionError:
-            console.print(f"[red]Permission denied accessing directory: {path}[/red]")
+            console.print(f"[red]Permission denied accessing directory: {normalized_path}[/red]")
+
 
     # Generate summary
     summary_table.add_row("Total Directories", str(dir_count))
