@@ -4,10 +4,10 @@ import sys
 from datetime import datetime
 import unicodedata
 import magic
+import pathlib
 
 from typing import Optional, Dict, Union, Any
 
-from pathlib import Path
 
 from nameparser import HumanName
 
@@ -16,9 +16,7 @@ from utils.unified_logger import logger
 
 from models.exceptions import InvalidCrossrefDataError, NameItError, InvalidNameItPath
 
-# Structure to allow functions to accept paths as pathlib paths or str
-PathLike = Union[str, os.PathLike, Path]  # All supported path types
-
+from models.data_models import PathLike
 
 def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""
@@ -214,9 +212,9 @@ def is_pdf_file(file_path: str) -> bool:
     return mime == 'application/pdf'
 
 
-def is_valid_path(path_to_rename: PathLike) -> bool:
-    return is_valid_path_to_a_file_than_should_be_renamed(
-        path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename)
+def is_valid_path(path_to_rename: PathLike) -> PathLike:
+    if is_valid_path_to_a_file_than_should_be_renamed(path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename):
+        return path_to_rename
 
 
 def is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename: PathLike) -> bool:

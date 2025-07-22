@@ -18,6 +18,8 @@ from rich.panel import Panel
 from rich.table import Table
 
 from NameItCrossRef import extract_publication_metadata_from_crossref_using_doi_in_pdf
+
+from models.data_models import PathLike
 from models.error_model import ErrorModel
 from models.exceptions import InvalidNameItPath
 
@@ -25,8 +27,6 @@ from utils.unified_logger import logger
 from utils.unified_console import console
 from utils.validators import is_valid_path
 
-# Structure to allow functions to accept paths as pathlib paths or str
-PathLike = Union[str, os.PathLike, Path]  # All supported path types
 
 
 def normalize_path(nameit_path: Union[str, PathLike]) -> Path:
