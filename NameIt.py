@@ -23,10 +23,40 @@ from models.exceptions import InvalidNameItPath
 
 from utils.unified_logger import logger
 from utils.unified_console import console
-from utils.validators import valid_path
+from utils.validators import is_valid_path
 
 # Structure to allow functions to accept paths as pathlib paths or str
 PathLike = Union[str, os.PathLike, Path]  # All supported path types
+
+
+def normalize_path(nameit_path: Union[str, PathLike]) -> Path:
+    """
+    Convert input to a Path object regardless of input type.
+
+    Args:
+        nameit_path (Union[str, PathLike]): Input path to normalize.
+
+    Returns:
+        Path: A pathlib.Path object representing the normalized path.
+
+    Raises:
+        TypeError: If the input type is not a string or a path-like object.
+    """
+    if nameit_path is None:
+        raise TypeError("Input path cannot be None.")
+
+    if isinstance(nameit_path, Path):
+        return nameit_path
+
+    if isinstance(nameit_path, str):
+        return Path(nameit_path)
+
+    # Handle other path-like objects
+    try:
+        return Path(nameit_path)
+    except Exception as e:
+        raise TypeError(f"Could not convert input to Path object: {e}. Verify your given opath {nameit_path}")
+
 
 def validate_no_wildcards(file_path: str):
     if re.search(r'[\*\?\[\]]', file_path):
@@ -41,7 +71,7 @@ def parse_arguments():
         description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
         epilog="[dim]Created with ❤️ using Python[/dim]")
 
-    parser.add_argument("path", help="Path to PDF file or folder containing PDFs", type=valid_path)
+    parser.add_argument("path", help="Path to PDF file or folder containing PDFs", type=is_valid_path)
 
     # Logging level options
     log_group = parser.add_mutually_exclusive_group()
@@ -112,7 +142,7 @@ def process_folder_or_file_dry_run(
         Dictionary mapping original paths to their proposed new paths
     """
     # Convert input to Path object regardless of input type
-    normalized_path = Path(nameit_path) if not isinstance(nameit_path, Path) else nameit_path
+    normalized_path = normalize_path(nameit_path)
 
     pdf_count: int = 0
     dir_count: int = 0
@@ -228,8 +258,8 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
 
         try:
             logger.info(f"validating path {nameit_path}")
-            validated_path = valid_path(nameit_path)
-            if validated_path:
+            if is_valid_path(nameit_path):
+                validated_path = nameit_path
                 logger.info(f"path {validated_path} is validated without raising exceptions")
             else:
                 return None
@@ -243,7 +273,7 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
                 reason="Invalid path",
                 suggestion="Check file extension, or provide a different file or directory."
             )
-        except (argparse.ArgumentTypeError) as e:
+        except argparse.ArgumentTypeError as e:
             console.print(f"[red] Argument file path {nameit_path}[/red]")
             console.print(f"[blue] Caught exception:{e}")
 
@@ -291,5 +321,9 @@ if __name__ == "__main__":
 
     path = args.path
 
-    process_folder_or_file_dry_run(path, args)
+    logger.debug(f"{console=}")
+    sys.exit()
+
+    process_folder_or_file_dry_run(Path(path), args)
+
     #process_folder_or_file(path, args)

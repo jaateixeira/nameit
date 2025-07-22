@@ -1,4 +1,3 @@
-from typing import Optional, Dict, List, Any
 import os
 import argparse
 import sys
@@ -6,19 +5,20 @@ from datetime import datetime
 import unicodedata
 import magic
 
-from nameparser import HumanName
-
+from typing import Optional, Dict, Union, Any
 
 from pathlib import Path
-from typing import Union, Dict
+
+from nameparser import HumanName
 
 from utils.unified_console import console
 from utils.unified_logger import logger
 
-from models.exceptions import InvalidCrossrefDataError, NameItError
+from models.exceptions import InvalidCrossrefDataError, NameItError, InvalidNameItPath
 
 # Structure to allow functions to accept paths as pathlib paths or str
 PathLike = Union[str, os.PathLike, Path]  # All supported path types
+
 
 def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""
@@ -135,16 +135,16 @@ def validate_family_names_in_metadata_retrieved_from_cross_ref(meta_data_authors
     #console.print(f"{meta_data_authors=}")
 
     for author in meta_data_authors:
+        validate_author_family_name(author['family'])
         #console.print(f"{author=}")
         #console.print(f"{author['family']=}")
-        validate_author_family_name(author['family'])
 
     return meta_data_authors
 
 
 def validate_title(retrieved_article_title: str) -> str:
     """Validate that the title is either None or a non-empty string.
-    @param retrieved_title:
+    @param retrieved_article_title:
     @return:
     """
     logger.info(f"Validating title {retrieved_article_title}")
@@ -215,7 +215,9 @@ def is_pdf_file(file_path: str) -> bool:
 
 
 def is_valid_path(path_to_rename: PathLike) -> bool:
-    return is_valid_path_to_a_file_than_should_be_renamed(path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename)
+    return is_valid_path_to_a_file_than_should_be_renamed(
+        path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename)
+
 
 def is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename: PathLike) -> bool:
     """
@@ -229,20 +231,27 @@ def is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_renam
     """
     # Check if the path exists and is a directory
     if not os.path.isdir(path_to_rename):
-        return False
+        raise InvalidNameItPath(path_to_rename,
+                                "either path does not exist and or its not a directory",
+                                "check the if the provided path is a valid directory")
 
     # Check if the directory is not empty
     if not os.listdir(path_to_rename):
-        return False
+        raise InvalidNameItPath(path_to_rename,
+                                "The directory is empty",
+                                "check the if the provided path is  a non empty directory")
 
     # Check if there is at least one PDF file in the directory
     pdf_files = [f for f in os.listdir(path_to_rename) if f.lower().endswith('.pdf')]
     if not pdf_files:
-        return False
+        raise InvalidNameItPath(path_to_rename,
+                                "The directory does not contain pdf files",
+                                "check the if the provided path is  a non empty directory with pdf files")
 
     return True
 
-def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike ) -> bool:
+
+def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> bool:
     """
     Validate that the path_to_rename exists, is a file/directory, and meets PDF/directory constraints.
 
@@ -300,20 +309,13 @@ def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike ) ->
                 f"File '{path_to_rename}' seems took small to be a valid PDF article "
                 f"( {file_size_in_kb} < {min_pdf_file_size_in_kb}KB).")
 
-    # --- Step 4: Validate directories ---
-    elif os.path.isdir(path_to_rename):
-        if not os.listdir(path_to_rename):
-            raise argparse.ArgumentTypeError(
-                f"Directory '{path_to_rename}' is empty. Provide a non-empty directory."
-            )
-
-    # --- Step 5: Reject invalid types (e.g., symlinks, devices) ---
+    # --- Step 4: Reject invalid types (e.g., symlinks, devices) ---
     else:
         raise argparse.ArgumentTypeError(
             f"path_to_rename '{path_to_rename}' is neither a file nor a directory."
         )
 
-    return path_to_rename
+    return True
 
 
 def validate_author_family_name(author_family_name: str) -> str:
@@ -439,9 +441,9 @@ def validate_container_title(container_title):
 # Validate that the publisher field is a string
 def validate_publisher(publisher: str) -> str:
     if not isinstance(publisher, str):
-        error_mesg = f"Publisher is not a string: {publisher}"
-        logger.error(error_mesg)
-        raise NameItError(error_mesg)
+        error_message = f"Publisher is not a string: {publisher}"
+        logger.error(error_message)
+        raise NameItError(error_message)
 
     return publisher
 
