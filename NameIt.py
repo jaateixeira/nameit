@@ -142,12 +142,13 @@ def process_folder_or_file_dry_run(
         Dictionary mapping original paths to their proposed new paths
     """
     # Convert input to Path object regardless of input type
-    normalized_path = normalize_path(nameit_path)
+    normalized_path : PathLike = normalize_path(nameit_path)
 
-    pdf_count: int = 0
+    file_count: int = 0
+    pdf_to_be_renamed: int = 0
     dir_count: int = 0
 
-    rename_operations: dict[Path, Path] = {}
+    rename_operations: dict[PathLike, PathLike] = {}
 
     # Initialize summary table
     summary_table = Table(title="Dry Run Summary", show_header=True, header_style="bold magenta")
@@ -157,11 +158,12 @@ def process_folder_or_file_dry_run(
     console.print(f"[yellow]DEBUG: Starting dry run for path: {normalized_path}[/yellow]")
 
     if not normalized_path.exists():
-        console.print(f"[red]Error: Path does not exist - {normalized_path}[/red]")
-        return None
+        error_message = f"[red]Error: Path does not exist - {normalized_path}[/red]"
+        console.print(error_message)
+        raise InvalidNameItPath(normalized_path,error_message,f"check the {normalize_path=} and {nameit_path=}")
 
-    def process_item(item: Path, depth: int = 0) -> None:
-        nonlocal pdf_count, dir_count
+    def process_item(process_path: PathLike, depth: int = 0) -> None:
+        nonlocal file_count, dir_count, pdf_to_be_renamed
         indent = "  " * depth
 
         if item.is_dir():
@@ -178,34 +180,48 @@ def process_folder_or_file_dry_run(
                         console.print(f"{indent}[red]Permission denied: {item}[/red]")
 
         elif item.is_file():
+            file_count += 1
             if item.suffix.lower() == '.pdf':
-                pdf_count += 1
-                new_name = "TODO"
-                rename_operations[item] = new_name
+                pdf_to_be_renamed += 1
+                rename_operations[item] = "To be renamed"
 
                 #if cli_args.verbose:
-                console.print(f"{indent}[green]PDF: {item.name}[/green] → [yellow]{new_name}[/yellow]")
+                console.print(f"{indent}[green]PDF: {item.name}[/green] → [yellow]{rename_operations[item]}[/yellow]")
             #elif cli_args.debug:
-            console.print(f"{indent}[dim]FILE: {item.name}[/dim]")
+            else:
+                rename_operations[item] = "Not to be renamed"
+                console.print(f"{indent}[red]PDF: {item.name}[/red] → [yellow]{rename_operations[item]}[/yellow]")
+
+            #console.print(f"{indent}[dim]FILE: {item.name}[/dim]")
 
     # Process the initial normalized_path
     if normalized_path.is_file():
         if normalized_path.suffix.lower() == '.pdf':
-            pdf_count += 1
-            new_name = "TODO"
-            rename_operations[normalized_path] = new_name
-            console.print(f"[green]PDF: {normalized_path.name}[/green] → [yellow]{new_name}[/yellow]")
-    else:
+            file_count += 1
+            pdf_to_be_renamed += 1
+            rename_operations[normalized_path] = "Single file to be renamed"
+            console.print(f"[green]PDF: {normalized_path.name}[/green] → [yellow]{rename_operations[normalized_path] }[/yellow]")
+    elif normalized_path.is_dir():
+        dir_count += 1
         try:
             for item in sorted(normalized_path.iterdir()):
                 process_item(item)
         except PermissionError:
-            console.print(f"[red]Permission denied accessing directory: {normalized_path}[/red]")
+            error_message = f"[red]Permission denied accessing directory: {normalized_path}[/red]"
+            console.print(error_message)
+            raise PermissionError(normalized_path)
+    else:
+        error_message = f"[red] Neither a file neither a directory: {normalized_path}[/red]"
+        console.print(error_message)
+        logger.error(error_message)
+        sys.exit()
+
+
 
     # Generate summary
     summary_table.add_row("Total Directories", str(dir_count))
-    summary_table.add_row("Total PDF Files", str(pdf_count))
-    summary_table.add_row("PDFs to be Renamed", str(len(rename_operations)))
+    summary_table.add_row("Total Files", str(file_count))
+    summary_table.add_row("PDFs to be Renamed", str(pdf_to_be_renamed))
 
     console.print(Panel(summary_table, title="[bold]Dry Run Results[/bold]"))
 
@@ -307,12 +323,12 @@ if __name__ == "__main__":
     console.print(f"{args=}")
 
     if args.use_pdf_metadata:
-        console.print("\n [bold green].Taking pdf metadata in consideration")
+        console.print("\n [bold green]. We are going to take pdf own metadata in consideration")
     if args.use_crossref:
-        console.print("\n [bold green].Attempting to find DOIs to call the Crossref API")
+        console.print("\n [bold green]. We will attempt find DOIs in the pdf first page to call the Crossref API")
 
     if args.use_layoutlmv3:
-        console.print("\n [bold green]. Using LayoutLMv3 to find the required information")
+        console.print("\n [bold green]. We will use LayoutLMv3 to find the required information")
 
     if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
         console.print(
