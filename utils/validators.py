@@ -11,12 +11,12 @@ from typing import Optional, Dict, Union, Any
 
 from nameparser import HumanName
 
+from models.data_models import PathLike
 from utils.unified_console import console
 from utils.unified_logger import logger
 
 from models.exceptions import InvalidCrossrefDataError, NameItError, InvalidNameItPath
 
-from models.data_models import PathLike
 
 def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""

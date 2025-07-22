@@ -18,8 +18,8 @@ from rich.panel import Panel
 from rich.table import Table
 
 from NameItCrossRef import extract_publication_metadata_from_crossref_using_doi_in_pdf
-
 from models.data_models import PathLike
+
 from models.error_model import ErrorModel
 from models.exceptions import InvalidNameItPath
 
