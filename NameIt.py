@@ -147,7 +147,7 @@ def process_folder_or_file_dry_run(
     pdf_count: int = 0
     dir_count: int = 0
 
-    rename_operations: Dict[Path, Path] = {}
+    rename_operations: dict[Path, Path] = {}
 
     # Initialize summary table
     summary_table = Table(title="Dry Run Summary", show_header=True, header_style="bold magenta")
@@ -321,9 +321,6 @@ if __name__ == "__main__":
 
     path = args.path
 
-    logger.debug(f"{console=}")
-    sys.exit()
-
-    process_folder_or_file_dry_run(Path(path), args)
+    process_folder_or_file_dry_run(path, args)
 
     #process_folder_or_file(path, args)

@@ -269,30 +269,34 @@ def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> 
         argparse.ArgumentTypeError: If any validation fails, with a descriptive message.
     """
 
-    logger.info(f"UnitTest - Testing valid_path with path_to_rename={path_to_rename}")
+    logger.info(f"Validator.py - Testing valid_path with path_to_rename={path_to_rename}")
 
     # --- Step 1: Reject wildcards ---
     if any(char in path_to_rename for char in '*?[]'):
-        raise argparse.ArgumentTypeError(
-            f"Wildcards (*, ?, []) are not allowed in path_to_rename: '{path_to_rename}'. "
+        raise InvalidNameItPath( path_to_rename,
+            f"Wildcards (*, ?, []) are not allowed in path_to_rename: '{path_to_rename}'. ",
             "Provide a literal path_to_rename or quote the argument (e.g., \"*.pdf\")."
         )
 
     # --- Step 2: Check existence ---
     if not os.path.exists(path_to_rename):
-        raise argparse.ArgumentTypeError(f"path_to_rename '{path_to_rename}' does not exist.")
+        raise InvalidNameItPath(path_to_rename,f"path_to_rename '{path_to_rename}' does not exist.","check the path_to_rename")
 
     # --- Step 3: Validate files ---
     if os.path.isfile(path_to_rename):
         # Check extension
         if not path_to_rename.lower().endswith('.pdf'):
-            raise argparse.ArgumentTypeError(
-                f"File '{path_to_rename}' is not a PDF (expected '.pdf' extension)."
+            raise InvalidNameItPath(
+                path_to_rename,
+                f"File '{path_to_rename}' is not a PDF (expected '.pdf' extension).",
+                "check the path_to_rename"
             )
         # Check PDF magic number
         if not is_pdf_file(path_to_rename):
-            raise argparse.ArgumentTypeError(
-                f"File '{path_to_rename}' is not a valid PDF (missing '%PDF-' header)."
+            raise InvalidNameItPath(
+                path_to_rename,
+                f"File '{path_to_rename}' is not a valid PDF (missing '%PDF-' header).",
+                "check the path_to_rename, is it a pdf? "
             )
         # Check file size is at minimum 20KB
 
@@ -303,15 +307,12 @@ def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> 
         print(f"UnitTest - file size of path_to_rename={path_to_rename} is {file_size_in_kb} KB")
 
         if file_size_in_kb < min_pdf_file_size_in_kb:
-            raise argparse.ArgumentTypeError(
+            raise InvalidNameItPath(
+                path_to_rename,
                 f"File '{path_to_rename}' seems took small to be a valid PDF article "
-                f"( {file_size_in_kb} < {min_pdf_file_size_in_kb}KB).")
+                f"( {file_size_in_kb} < {min_pdf_file_size_in_kb}KB).",
+                "check the  path_to_rename, is it a pdf? looks so small!! ")
 
-    # --- Step 4: Reject invalid types (e.g., symlinks, devices) ---
-    else:
-        raise argparse.ArgumentTypeError(
-            f"path_to_rename '{path_to_rename}' is neither a file nor a directory."
-        )
 
     return True
 
