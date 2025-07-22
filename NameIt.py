@@ -10,15 +10,12 @@ import unicodedata
 import argparse
 import os
 
+# To allow functions to accept paths as pathlib paths or str
 from pathlib import Path
-from typing import  Union, Dict
-
-PathLike = Union[str, os.PathLike, Path]  # All supported path types
-
+from typing import Union, Dict
 
 from rich.panel import Panel
 from rich.table import Table
-
 
 from NameItCrossRef import extract_publication_metadata_from_crossref_using_doi_in_pdf
 from models.error_model import ErrorModel
@@ -26,9 +23,10 @@ from models.exceptions import InvalidNameItPath
 
 from utils.unified_logger import logger
 from utils.unified_console import console
-from utils.validators import validate_metadata, validate_author_family_name, validate_title, validate_year, \
-    validate_container_title, validate_publisher, valid_path
+from utils.validators import valid_path
 
+# Structure to allow functions to accept paths as pathlib paths or str
+PathLike = Union[str, os.PathLike, Path]  # All supported path types
 
 def validate_no_wildcards(file_path: str):
     if re.search(r'[\*\?\[\]]', file_path):
@@ -86,19 +84,13 @@ def remove_invalid_characters(text):
     return cleaned_text
 
 
-
-
-
-
 # Saving required information from the metadata to the file and removing invalid characters
-def rename_pdf_file(pdf_file:os.path, new_file_name:str) -> None:
+def rename_pdf_file(pdf_file: os.path, new_file_name: str) -> None:
     logger.info(f"renaming pdf file  {pdf_file} to {new_file_name}")
 
     os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_file_name))
 
-
     return None
-
 
 
 def process_folder_or_file_dry_run(
@@ -123,7 +115,7 @@ def process_folder_or_file_dry_run(
     normalized_path = Path(nameit_path) if not isinstance(nameit_path, Path) else nameit_path
 
     pdf_count: int = 0
-    dir_count: int  = 0
+    dir_count: int = 0
 
     rename_operations: Dict[Path, Path] = {}
 
@@ -131,7 +123,6 @@ def process_folder_or_file_dry_run(
     summary_table = Table(title="Dry Run Summary", show_header=True, header_style="bold magenta")
     summary_table.add_column("Metric", style="cyan")
     summary_table.add_column("Count", style="green")
-
 
     console.print(f"[yellow]DEBUG: Starting dry run for path: {normalized_path}[/yellow]")
 
@@ -181,7 +172,6 @@ def process_folder_or_file_dry_run(
         except PermissionError:
             console.print(f"[red]Permission denied accessing directory: {normalized_path}[/red]")
 
-
     # Generate summary
     summary_table.add_row("Total Directories", str(dir_count))
     summary_table.add_row("Total PDF Files", str(pdf_count))
@@ -222,17 +212,16 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
 
     """
 
-
     # Test if the path is a directory
     if os.path.isdir(nameit_path):
         for root, dirs, files in os.walk(nameit_path):
             # Goes after sub_directories  TODO Add -r to options
             for dir_name in dirs:
-                process_folder_or_file(dir_name,cli_args)
+                process_folder_or_file(dir_name, cli_args)
 
             # Goes after files
             for filename in files:
-                process_folder_or_file(root+filename, cli_args)
+                process_folder_or_file(root + filename, cli_args)
 
     # Handle if the path is a single pdf file
     elif os.path.isfile(nameit_path) and path.lower().endswith('.pdf'):
@@ -262,7 +251,7 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
         if cli_args.use_pdf_metadata or cli_args.use_crossref or cli_args.use_layoutlmv3:
             pdf_file_path = nameit_path
             extracted_publication_from_crossref_api = (
-                extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file_path))
+                extract_publication_metadata_from_crossref_using_doi_in_pdf(str(pdf_file_path)))
         else:
             console.print("[red]Method not known.[/red]")
             console.print("[blue]Are you sure you don't want to use pdf metadata? "
@@ -271,7 +260,7 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
 
         # Process metadata if found
         if extracted_publication_from_crossref_api:
-            new_file_name = rename_pdf_file(pdf_file_path,str(extracted_publication_from_crossref_api))
+            new_file_name = rename_pdf_file(pdf_file_path, str(extracted_publication_from_crossref_api))
             if new_file_name:
                 console.print(f"[green]File renamed to: {new_file_name}[/green]")
         else:
@@ -293,7 +282,7 @@ if __name__ == "__main__":
         console.print("\n [bold green].Attempting to find DOIs to call the Crossref API")
 
     if args.use_layoutlmv3:
-        console.print("\n [bold green]. Using LayoutLMv3 to find the required information" )
+        console.print("\n [bold green]. Using LayoutLMv3 to find the required information")
 
     if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
         console.print(
@@ -302,5 +291,5 @@ if __name__ == "__main__":
 
     path = args.path
 
-    process_folder_or_file_dry_run(path,args)
+    process_folder_or_file_dry_run(path, args)
     #process_folder_or_file(path, args)

@@ -8,14 +8,17 @@ import magic
 
 from nameparser import HumanName
 
-from habanero import Crossref
-from jsonschema import validate, ValidationError
+
+from pathlib import Path
+from typing import Union, Dict
 
 from utils.unified_console import console
 from utils.unified_logger import logger
 
 from models.exceptions import InvalidCrossrefDataError, NameItError
 
+# Structure to allow functions to accept paths as pathlib paths or str
+PathLike = Union[str, os.PathLike, Path]  # All supported path types
 
 def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""
@@ -211,7 +214,35 @@ def is_pdf_file(file_path: str) -> bool:
     return mime == 'application/pdf'
 
 
-def valid_path(path_to_rename: os.path) -> os.path:
+def is_valid_path(path_to_rename: PathLike) -> bool:
+    return is_valid_path_to_a_file_than_should_be_renamed(path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename)
+
+def is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename: PathLike) -> bool:
+    """
+    Validate that the path_to_rename is a non-empty directory containing at least one PDF file.
+
+    Args:
+        path_to_rename (PathLike): Input path to validate (pathlib path or str).
+
+    Returns:
+        bool: True if the directory is valid, False otherwise.
+    """
+    # Check if the path exists and is a directory
+    if not os.path.isdir(path_to_rename):
+        return False
+
+    # Check if the directory is not empty
+    if not os.listdir(path_to_rename):
+        return False
+
+    # Check if there is at least one PDF file in the directory
+    pdf_files = [f for f in os.listdir(path_to_rename) if f.lower().endswith('.pdf')]
+    if not pdf_files:
+        return False
+
+    return True
+
+def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike ) -> bool:
     """
     Validate that the path_to_rename exists, is a file/directory, and meets PDF/directory constraints.
 
@@ -219,20 +250,19 @@ def valid_path(path_to_rename: os.path) -> os.path:
     1. No wildcards (e.g., `*.pdf`) are present.
     2. The path_to_rename exists on the filesystem.
     3. If a file, it has a `.pdf` extension and a valid PDF header.
-    4. If a directory, it is not empty.
-    5. If a file, it has at least 2KB <- otherwise is probably not an academic article in pdf
+    4. If a file, it has at least 2KB <- otherwise is probably not an academic article in pdf
 
     Args:
-        path_to_rename (os.path): Input path_to_rename to validate.
+        path_to_rename (PathLike): Input path to validate (pathlib path or str).
 
     Returns:
-        str: The validated path_to_rename if all checks pass.
+       boolean: True for valid, False for invalid
 
     Raises:
         argparse.ArgumentTypeError: If any validation fails, with a descriptive message.
     """
 
-    print(f"UnitTest - Testing valid_path with path_to_rename={path_to_rename}")
+    logger.info(f"UnitTest - Testing valid_path with path_to_rename={path_to_rename}")
 
     # --- Step 1: Reject wildcards ---
     if any(char in path_to_rename for char in '*?[]'):
@@ -407,7 +437,7 @@ def validate_container_title(container_title):
 
 
 # Validate that the publisher field is a string
-def validate_publisher(publisher:str) -> str:
+def validate_publisher(publisher: str) -> str:
     if not isinstance(publisher, str):
         error_mesg = f"Publisher is not a string: {publisher}"
         logger.error(error_mesg)
