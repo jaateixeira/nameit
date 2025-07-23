@@ -91,6 +91,12 @@ def parse_arguments():
                             help="Use Crossref API (default)", default=True)
     meta_group.add_argument("-l", "--use-layoutlmv3", action="store_true",
                             help="Use LayoutLMv3 model for extraction")
+    # Support for recursion in directory trees
+    parser.add_argument('-r', '--recursive', action='store_true', help='Enable recursive processing')
+
+    # Add the --dry-run option
+    parser.add_argument('--dry-run', action='store_true',
+                        help='Inspect the given path but take no actions on the filesystem')
 
     return parser.parse_args()
 
@@ -162,19 +168,27 @@ def process_folder_or_file_dry_run(
         console.print(error_message)
         raise InvalidNameItPath(normalized_path,error_message,f"check the {normalize_path=} and {nameit_path=}")
 
-    def process_item(process_path: PathLike, depth: int = 0) -> None:
+    def process_item(process_path: PathLike, depth: int) -> None:
         nonlocal file_count, dir_count, pdf_to_be_renamed
         indent = "  " * depth
 
+        logger.debug(f"\t func call process_item {process_path=} {depth=} ")
+
         if item.is_dir():
-            dir_count += 1
-            if cli_args.verbose:
-                console.print(f"{indent}[blue]DIR: {item.name}[/blue]")
+            console.print(f"{indent}[blue]DIR: {item.name}[/blue] {item=}")
 
             if cli_args.recursive:
+
                 try:
-                    for child in sorted(item.iterdir()):
-                        process_item(child, depth + 1)
+                    for child in item.iterdir():
+                        if child.is_dir():
+
+
+                            console.print(f"{indent}[blue]  Processing recursively DIR: {child}[/blue]")
+                            process_item(child, depth + 1)
+                        elif child.is_file():
+                            process_item(child, depth + 0)
+
                 except PermissionError:
                     if cli_args.debug:
                         console.print(f"{indent}[red]Permission denied: {item}[/red]")
@@ -205,7 +219,7 @@ def process_folder_or_file_dry_run(
         dir_count += 1
         try:
             for item in sorted(normalized_path.iterdir()):
-                process_item(item)
+                process_item(item,0)
         except PermissionError:
             error_message = f"[red]Permission denied accessing directory: {normalized_path}[/red]"
             console.print(error_message)
@@ -226,9 +240,9 @@ def process_folder_or_file_dry_run(
     console.print(Panel(summary_table, title="[bold]Dry Run Results[/bold]"))
 
     #if cli_args.debug and rename_operations:
-    console.print("\n[bold yellow]DEBUG: Full rename operations list:[/bold yellow]")
-    for old, new in rename_operations.items():
-        console.print(f"  {old} → {new}")
+    #console.print("\n[bold yellow]DEBUG: Full rename operations list:[/bold yellow]")
+    #for old, new in rename_operations.items():
+    #    console.print(f"  {old} → {new}")
 
     return None
 
@@ -313,6 +327,30 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
             console.print(f"[yellow]DOI not found in {pdf_file_path}.[/yellow]")
 
 
+def list_files_and_directories(fs_path: PathLike) -> None:
+    """
+    List files and directories in the given directory.
+    If recursive is True, list them recursively.
+    """
+    def list_items(directory: Path, depth: int = 0):
+        indent = "  " * depth
+        try:
+            for item in directory.iterdir():
+                if item.is_dir():
+                    console.print(f"{indent}[blue][DIR][/blue] {item.name}")
+                    if args.recursive:
+                        list_items(item, depth + 1)
+                else:
+                    console.print(f"{indent}[green][FILE][/green] {item.name}")
+        except PermissionError:
+            print(f"{indent}[ERROR] Permission denied: {directory}")
+
+    if fs_path.is_dir():
+        list_items(fs_path)
+    if fs_path.is_file():
+        console.print(f"[green][FILE][/green] {fs_path} is to be renamed")
+
+
 # Main code
 if __name__ == "__main__":
 
@@ -335,8 +373,9 @@ if __name__ == "__main__":
             "[red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
         sys.exit(1)
 
-    path = args.path
+    path = normalize_path(args.path)
 
-    process_folder_or_file_dry_run(path, args)
+    list_files_and_directories(path)
+    # process_folder_or_file_dry_run(path, args)
 
     #process_folder_or_file(path, args)
