@@ -332,6 +332,7 @@ def list_files_and_directories(fs_path: PathLike) -> None:
     List files and directories in the given directory.
     If recursive is True, list them recursively.
     """
+    console.print(f"[blue]Listing  {fs_path} [/blue] with {args.recursive=}")
     def list_items(directory: Path, depth: int = 0):
         indent = "  " * depth
         try:
