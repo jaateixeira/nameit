@@ -1,6 +1,11 @@
 TODO ASAP
 
+Add recursive test cases
+Add recursive and dryu ryb support -d
 Add support for recursive naming and single directly
+
+
+
 
 Use str and pathlib suppor
 
