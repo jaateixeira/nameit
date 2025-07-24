@@ -142,16 +142,16 @@ def rename_pdf_file(pdf_file: os.path, new_file_name: str) -> None:
 
 
 def process_folder_or_file_dry_run(
-        nameit_path: PathLike,
-        cli_args: Nameit_processing_args
+        fs_path: PathLike,
+        nameit_args: Nameit_processing_args
 ) -> None:
     """
     Simulates processing by recursively listing all files and directories found at the specified path,
     counting PDF files, and displaying a summary of rename operations that would occur.
 
     Args:
-        nameit_path: The path to a file or directory (accepts str, os.PathLike, or Path)
-        cli_args: Parsed command-line arguments with these attributes:
+        fs_path: The path to a file or directory (accepts str, os.PathLike, or Path)
+        nameit_args: Parsed command-line arguments with these attributes:
             - recursive (bool): Whether to traverse directories recursively
             - verbose (bool): Show detailed output
             - debug (bool): Show debug information
@@ -159,14 +159,18 @@ def process_folder_or_file_dry_run(
     Returns:
         Dictionary mapping original paths to their proposed new paths
     """
-    # Convert input to Path object regardless of input type
-    normalized_path: PathLike = normalize_path(nameit_path)
+
+    console.print(f"[blue]Listing  {fs_path} [/blue] with {args.recursive=}")
 
     file_count: int = 0
     pdf_to_be_renamed: int = 0
     dir_count: int = 0
 
     rename_operations: dict[PathLike, PathLike] = {}
+
+    # Convert input to Path object regardless of input type
+    normalized_path: PathLike = normalize_path(fs_path)
+
 
     # Initialize summary table
     summary_table = Table(title="Dry Run Summary", show_header=True, header_style="bold magenta")
@@ -175,87 +179,44 @@ def process_folder_or_file_dry_run(
 
     console.print(f"[yellow]DEBUG: Starting dry run for path: {normalized_path}[/yellow]")
 
-    if not normalized_path.exists():
+    def list_items(directory: Path, depth: int = 0):
+        indent = "  " * depth
+        nonlocal file_count, dir_count, pdf_to_be_renamed
+
+        try:
+            for item in directory.iterdir():
+                if item.is_dir():
+                    console.print(f"{indent}[blue][DIR][/blue] {item.name}")
+                    if args.recursive:
+                        list_items(item, depth + 1)
+                elif item.is_file():
+                    console.print(f"{indent}[green][FILE][/green] {item.name}")
+                    file_count += 1
+                    if item.suffix.lower() == '.pdf':
+                        pdf_to_be_renamed += 1
+                        rename_operations[item] = "To be renamed"
+                        # if cli_args.verbose:
+                        console.print(
+                            f"{indent}[green]PDF: {item.name}[/green] → [yellow]{rename_operations[item]}[/yellow]")
+                    else:
+                        rename_operations[item] = "Not to be renamed"
+                        console.print(
+                            f"{indent}[red]PDF: {item.name}[/red] → [yellow]{rename_operations[item]}[/yellow]")
+
+        except PermissionError:
+            print(f"{indent}[ERROR] Permission denied: {directory}")
+
+    if normalized_path.is_dir():
+        list_items(normalized_path)
+    elif normalized_path.is_file():
+        console.print(f"[green][FILE][/green] {normalized_path} is to be renamed")
+
+    elif not normalized_path.exists():
         error_message = f"[red]Error: Path does not exist - {normalized_path}[/red]"
         console.print(error_message)
         raise InvalidNameItPath(normalized_path, error_message, f"check the {normalize_path=} and {nameit_path=}")
 
-    def process_item(process_path: PathLike, depth: int) -> None:
-        nonlocal file_count, dir_count, pdf_to_be_renamed
-        indent = "  " * depth
-
-        logger.debug(f"\t func call process_item {process_path=} {depth=} ")
-
-        if item.is_dir():
-            console.print(f"{indent}[blue]DIR: {item.name}[/blue] {item=}")
-
-            if cli_args.recursive:
-
-                try:
-                    for child in item.iterdir():
-                        if child.is_dir():
-
-                            console.print(f"{indent}[blue]  Processing recursively DIR: {child}[/blue]")
-                            process_item(child, depth + 1)
-                        elif child.is_file():
-                            process_item(child, depth + 0)
-
-                except PermissionError:
-                    if cli_args.debug:
-                        console.print(f"{indent}[red]Permission denied: {item}[/red]")
-
-        elif item.is_file():
-            file_count += 1
-            if item.suffix.lower() == '.pdf':
-                pdf_to_be_renamed += 1
-                rename_operations[item] = "To be renamed"
-
-                #if cli_args.verbose:
-                console.print(f"{indent}[green]PDF: {item.name}[/green] → [yellow]{rename_operations[item]}[/yellow]")
-            #elif cli_args.debug:
-            else:
-                rename_operations[item] = "Not to be renamed"
-                console.print(f"{indent}[red]PDF: {item.name}[/red] → [yellow]{rename_operations[item]}[/yellow]")
-
-            #console.print(f"{indent}[dim]FILE: {item.name}[/dim]")
-
-    # Process the initial normalized_path
-    if normalized_path.is_file():
-        if normalized_path.suffix.lower() == '.pdf':
-            file_count += 1
-            pdf_to_be_renamed += 1
-            rename_operations[normalized_path] = "Single file to be renamed"
-            console.print(
-                f"[green]PDF: {normalized_path.name}[/green] → [yellow]{rename_operations[normalized_path]}[/yellow]")
-    elif normalized_path.is_dir():
-        dir_count += 1
-        try:
-            for item in sorted(normalized_path.iterdir()):
-                process_item(item, 0)
-        except PermissionError:
-            error_message = f"[red]Permission denied accessing directory: {normalized_path}[/red]"
-            console.print(error_message)
-            raise PermissionError(normalized_path)
-    else:
-        error_message = f"[red] Neither a file neither a directory: {normalized_path}[/red]"
-        console.print(error_message)
-        logger.error(error_message)
-        sys.exit()
-
-    # Generate summary
-    summary_table.add_row("Total Directories", str(dir_count))
-    summary_table.add_row("Total Files", str(file_count))
-    summary_table.add_row("PDFs to be Renamed", str(pdf_to_be_renamed))
-
-    console.print(Panel(summary_table, title="[bold]Dry Run Results[/bold]"))
-
-    #if cli_args.debug and rename_operations:
-    #console.print("\n[bold yellow]DEBUG: Full rename operations list:[/bold yellow]")
-    #for old, new in rename_operations.items():
-    #    console.print(f"  {old} → {new}")
-
-    return None
-
+    return Nonery
 
 def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespace) -> None:
     """
