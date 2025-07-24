@@ -63,10 +63,10 @@ def validate_no_wildcards(file_path: str):
         raise argparse.ArgumentTypeError("Wildcards (*, ?, []) are not allowed. Provide a literal path.")
     if not os.path.exists(file_path):
         raise argparse.ArgumentTypeError(f"Path '{file_path}' does not exist.")
-    return path
+    return file_path
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
         epilog="[dim]Created with ❤️ using Python[/dim]")
@@ -284,7 +284,7 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
                 process_folder_or_file(root + filename, cli_args)
 
     # Handle if the path is a single pdf file
-    elif os.path.isfile(nameit_path) and path.lower().endswith('.pdf'):
+    elif os.path.isfile(nameit_path) and os.path.lower().endswith('.pdf'):
 
         try:
             logger.info(f"validating path {nameit_path}")
@@ -351,32 +351,32 @@ def list_files_and_directories(fs_path: PathLike) -> None:
     if fs_path.is_file():
         console.print(f"[green][FILE][/green] {fs_path} is to be renamed")
 
-
-# Main code
-if __name__ == "__main__":
-
-    console.print("\n [bold green]. Parsing arguments")
-
-    args = parse_arguments()
-
-    console.print(f"{args=}")
+def parse_and_validate_arguments():
+    console.print("\n[bold green]Parsing arguments[/bold green]")
+    args : argparse.Namespace = parse_arguments()
+    console.print(f"{type(args)} {args=}")
 
     if args.use_pdf_metadata:
-        console.print("\n [bold green]. We are going to take pdf own metadata in consideration")
+        console.print("\n[bold green]We are going to take pdf own metadata in consideration[/bold green]")
+
     if args.use_crossref:
-        console.print("\n [bold green]. We will attempt find DOIs in the pdf first page to call the Crossref API")
+        console.print("\n[bold green]We will attempt find DOIs in the pdf first page to call the Crossref API[/bold green]")
 
     if args.use_layoutlmv3:
-        console.print("\n [bold green]. We will use LayoutLMv3 to find the required information")
+        console.print("\n[bold green]We will use LayoutLMv3 to find the required information[/bold green]")
 
     if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
-        console.print(
-            "[red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
+        console.print("[red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
         sys.exit(1)
 
-    path = normalize_path(args.path)
+    return args
 
+def execute_main_logic(args):
+    path = normalize_path(args.path)
     list_files_and_directories(path)
     # process_folder_or_file_dry_run(path, args)
+    # process_folder_or_file(path, args)
 
-    #process_folder_or_file(path, args)
+if __name__ == "__main__":
+    args = parse_and_validate_arguments()
+    execute_main_logic(args)
