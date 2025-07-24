@@ -1,15 +1,10 @@
 TODO ASAP
 
-Add recursive test cases
-Add recursive and dryu ryb support -d
-Add support for recursive naming and single directly
+Dry run could test the valid path
 
+Add recursive and dry ryb support -d
 
-
-
-Use str and pathlib suppor
-
-use -v and -d options
+impkment get_filename_in_nameit_standard as aliad to __str__
 
 Make the exception invalid cross ref data to be raised
 Should create and return a publication
