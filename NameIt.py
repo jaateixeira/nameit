@@ -98,7 +98,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('-r', '--recursive', action='store_true', help='Enable recursive processing')
 
     # Add the --dry-run option
-    parser.add_argument('--dry-run', action='store_true',
+    parser.add_argument('-d','--dry-run', action='store_true',
                         help='Inspect the given path but take no actions on the filesystem')
 
     return parser.parse_args()
@@ -214,9 +214,16 @@ def process_folder_or_file_dry_run(
     elif not normalized_path.exists():
         error_message = f"[red]Error: Path does not exist - {normalized_path}[/red]"
         console.print(error_message)
-        raise InvalidNameItPath(normalized_path, error_message, f"check the {normalize_path=} and {nameit_path=}")
+        raise InvalidNameItPath(normalized_path, error_message, f"check the {normalize_path=} and {fs_path=}")
 
-    return Nonery
+    # Generate summary
+    summary_table.add_row("Total Directories", str(dir_count))
+    summary_table.add_row("Total Files", str(file_count))
+    summary_table.add_row("PDFs to be Renamed", str(pdf_to_be_renamed))
+
+    console.print(Panel(summary_table, title="[bold]Dry Run Results[/bold]"))
+
+    return None
 
 def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespace) -> None:
     """
@@ -350,7 +357,9 @@ def execute_main_logic() -> None:
     path: PathLike = normalize_path(args.path)
     if args.verbose or args.very_verbose:
         list_files_and_directories(path)
-    # process_folder_or_file_dry_run(path, args)
+
+    if args.dry_run:
+        process_folder_or_file_dry_run(path, args)
     # process_folder_or_file(path, args)
 
 
