@@ -28,7 +28,6 @@ from utils.unified_console import console
 from utils.validators import is_valid_path
 
 
-
 def normalize_path(nameit_path: Union[str, PathLike]) -> Path:
     """
     Convert input to a Path object regardless of input type.
@@ -148,7 +147,7 @@ def process_folder_or_file_dry_run(
         Dictionary mapping original paths to their proposed new paths
     """
     # Convert input to Path object regardless of input type
-    normalized_path : PathLike = normalize_path(nameit_path)
+    normalized_path: PathLike = normalize_path(nameit_path)
 
     file_count: int = 0
     pdf_to_be_renamed: int = 0
@@ -166,7 +165,7 @@ def process_folder_or_file_dry_run(
     if not normalized_path.exists():
         error_message = f"[red]Error: Path does not exist - {normalized_path}[/red]"
         console.print(error_message)
-        raise InvalidNameItPath(normalized_path,error_message,f"check the {normalize_path=} and {nameit_path=}")
+        raise InvalidNameItPath(normalized_path, error_message, f"check the {normalize_path=} and {nameit_path=}")
 
     def process_item(process_path: PathLike, depth: int) -> None:
         nonlocal file_count, dir_count, pdf_to_be_renamed
@@ -182,7 +181,6 @@ def process_folder_or_file_dry_run(
                 try:
                     for child in item.iterdir():
                         if child.is_dir():
-
 
                             console.print(f"{indent}[blue]  Processing recursively DIR: {child}[/blue]")
                             process_item(child, depth + 1)
@@ -214,12 +212,13 @@ def process_folder_or_file_dry_run(
             file_count += 1
             pdf_to_be_renamed += 1
             rename_operations[normalized_path] = "Single file to be renamed"
-            console.print(f"[green]PDF: {normalized_path.name}[/green] → [yellow]{rename_operations[normalized_path] }[/yellow]")
+            console.print(
+                f"[green]PDF: {normalized_path.name}[/green] → [yellow]{rename_operations[normalized_path]}[/yellow]")
     elif normalized_path.is_dir():
         dir_count += 1
         try:
             for item in sorted(normalized_path.iterdir()):
-                process_item(item,0)
+                process_item(item, 0)
         except PermissionError:
             error_message = f"[red]Permission denied accessing directory: {normalized_path}[/red]"
             console.print(error_message)
@@ -229,8 +228,6 @@ def process_folder_or_file_dry_run(
         console.print(error_message)
         logger.error(error_message)
         sys.exit()
-
-
 
     # Generate summary
     summary_table.add_row("Total Directories", str(dir_count))
@@ -333,6 +330,7 @@ def list_files_and_directories(fs_path: PathLike) -> None:
     If recursive is True, list them recursively.
     """
     console.print(f"[blue]Listing  {fs_path} [/blue] with {args.recursive=}")
+
     def list_items(directory: Path, depth: int = 0):
         indent = "  " * depth
         try:
@@ -351,32 +349,37 @@ def list_files_and_directories(fs_path: PathLike) -> None:
     if fs_path.is_file():
         console.print(f"[green][FILE][/green] {fs_path} is to be renamed")
 
+
 def parse_and_validate_arguments():
     console.print("\n[bold green]Parsing arguments[/bold green]")
-    args : argparse.Namespace = parse_arguments()
+    args: argparse.Namespace = parse_arguments()
     console.print(f"{type(args)} {args=}")
 
     if args.use_pdf_metadata:
         console.print("\n[bold green]We are going to take pdf own metadata in consideration[/bold green]")
 
     if args.use_crossref:
-        console.print("\n[bold green]We will attempt find DOIs in the pdf first page to call the Crossref API[/bold green]")
+        console.print(
+            "\n[bold green]We will attempt find DOIs in the pdf first page to call the Crossref API[/bold green]")
 
     if args.use_layoutlmv3:
         console.print("\n[bold green]We will use LayoutLMv3 to find the required information[/bold green]")
 
     if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
-        console.print("[red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
+        console.print(
+            "[red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
         sys.exit(1)
 
     return args
 
-def execute_main_logic(args):
-    path = normalize_path(args.path)
+
+def execute_main_logic() -> None:
+    path : PathLike = normalize_path(args.path)
     list_files_and_directories(path)
     # process_folder_or_file_dry_run(path, args)
     # process_folder_or_file(path, args)
 
+
 if __name__ == "__main__":
-    args = parse_and_validate_arguments()
-    execute_main_logic(args)
+    args: argparse.Namespace = parse_and_validate_arguments()
+    execute_main_logic()
