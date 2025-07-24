@@ -4,7 +4,7 @@
 
 import re
 import string
-import subprocess
+import requests
 import sys
 import unicodedata
 import argparse
@@ -66,6 +66,10 @@ def validate_no_wildcards(file_path: str):
 
 
 def parse_arguments() -> argparse.Namespace:
+    """
+
+    @rtype: argparse.Namespace
+    """
     parser = argparse.ArgumentParser(
         description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
         epilog="[dim]Created with ❤️ using Python[/dim]")
@@ -82,12 +86,12 @@ def parse_arguments() -> argparse.Namespace:
                            help="Disable all logging output")
 
     # Metadata source options
-    meta_group = parser.add_mutually_exclusive_group()
+    meta_group = parser.add_argument_group()
     meta_group.add_argument("-p", "--use-pdf-metadata", action="store_true",
                             help="Use PDF embedded metadata only",
                             )
     meta_group.add_argument("-c", "--use-crossref", action="store_true",
-                            help="Use Crossref API (default)", default=True)
+                            help="Use Crossref API (default)")
     meta_group.add_argument("-l", "--use-layoutlmv3", action="store_true",
                             help="Use LayoutLMv3 model for extraction")
     # Support for recursion in directory trees
@@ -100,12 +104,21 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# Checking for internet connection
-def check_internet_access():
+def is_there_internet_access():
+    headers = {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+    }
+
     try:
-        subprocess.check_call(["ping", "-c", "1", "google.com"])
+        response = requests.get("http://www.google.com/", headers=headers,timeout=5)
+        response.raise_for_status()  # Raises an HTTPError for bad responses (4XX, 5XX)
+        console.print(f"\t Online access to internet [green]checked[/green] ")
         return True
-    except subprocess.CalledProcessError:
+    except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as e:
+        console.print(f"\t Online access to internet [green]failed[/green] ")
+        console.print(e)
         return False
 
 
@@ -350,32 +363,32 @@ def list_files_and_directories(fs_path: PathLike) -> None:
         console.print(f"[green][FILE][/green] {fs_path} is to be renamed")
 
 
-def parse_and_validate_arguments():
+def parse_and_validate_arguments() -> argparse.Namespace:
     console.print("\n[bold green]Parsing arguments[/bold green]")
-    args: argparse.Namespace = parse_arguments()
-    console.print(f"{type(args)} {args=}")
+    parsed_args: argparse.Namespace = parse_arguments()
+    console.print(f"{type(parsed_args)} {parsed_args=}")
 
-    if args.use_pdf_metadata:
+    if parsed_args.use_pdf_metadata:
         console.print("\n[bold green]We are going to take pdf own metadata in consideration[/bold green]")
 
-    if args.use_crossref:
+    if parsed_args.use_crossref:
         console.print(
             "\n[bold green]We will attempt find DOIs in the pdf first page to call the Crossref API[/bold green]")
-
-    if args.use_layoutlmv3:
-        console.print("\n[bold green]We will use LayoutLMv3 to find the required information[/bold green]")
-
-    if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
-        console.print(
-            "[red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
+        if not is_there_internet_access():
+            console.print(
+                "\n [red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
         sys.exit(1)
 
-    return args
+    if parsed_args.use_layoutlmv3:
+        console.print("\n[bold green]We will use LayoutLMv3 to find the required information[/bold green]")
+
+    return parsed_args
 
 
 def execute_main_logic() -> None:
-    path : PathLike = normalize_path(args.path)
-    list_files_and_directories(path)
+    path: PathLike = normalize_path(args.path)
+    if args.verbose or args.very_verbose:
+        list_files_and_directories(path)
     # process_folder_or_file_dry_run(path, args)
     # process_folder_or_file(path, args)
 
