@@ -18,7 +18,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from NameItCrossRef import extract_publication_metadata_from_crossref_using_doi_in_pdf
-from models.types import PathLike
+from models.types import PathLike,  Nameit_processing_args
 
 from models.error_model import ErrorModel
 from models.exceptions import InvalidNameItPath
@@ -143,7 +143,7 @@ def rename_pdf_file(pdf_file: os.path, new_file_name: str) -> None:
 
 def process_folder_or_file_dry_run(
         nameit_path: PathLike,
-        cli_args: argparse.Namespace,
+        cli_args: Nameit_processing_args
 ) -> None:
     """
     Simulates processing by recursively listing all files and directories found at the specified path,

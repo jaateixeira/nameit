@@ -9,12 +9,22 @@ improve code clarity and catch type-related errors early while remaining optiona
 """
 
 
-from typing import Union
+from typing import Union, Dict
 import pathlib
 import os
+import argparse
 
 """
 The PathLike = Union[str, os.PathLike, pathlib.Path] type annotation allows functions to flexibly accept file paths as strings, os.PathLike objects, or 
 pathlib.Path instances, ensuring compatibility across different path representations while enabling static type checking.
 """
 PathLike = Union[str, os.PathLike, pathlib.Path]  # All supported path types
+
+"""
+nameit_processing_args can be a argparge or a dictionary
+When passing a dictionary as a function argument, it's generally a good practice to use type hints to specify the expected types of the keys and values in the dictionary. This can help with code readability and type checking.
+In the context of your function, you can use the Dict type from the typing module to specify the type of the dictionary
+Dictionary has string keys and values that can be booleans, strings, or integers.
+"""
+Nameit_processing_args = Union[argparse.Namespace, Dict[str, Union[bool, str, int]]]
+
