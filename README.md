@@ -98,14 +98,14 @@ Should work in most modern computers running Linux, macOS and Windows. Problems 
 
 # Dependencies 
 
-NameIt tries to automatically install its dependencies. If it fails, you can try to install them using pip - the package installer for Python
+NameIt is pure python3 code.  It depends on several online public packages, published on the Python Package Index (PyPI). Those dependencies can be installed then using pip/pip3 - the package installer for Python. 
 
 ## Habanero ##
-`$ pip (or pip3) install habanero`
+`$ pip (or pip3) install habanero` <- required to call the Crossref API (it returns the article's metadata for a given DOI identifier). 
 
 ## PyMuPDF ##
 
-`$ pip (or pip3) install PyMuPDF`
+`$ pip (or pip3) install PyMuPDF` <- required to process the first page of a pdf article. 
 
 
 # How to use it 
