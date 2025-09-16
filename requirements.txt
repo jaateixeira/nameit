@@ -1,11 +1,8 @@
 loguru==0.7.2
 python_magic==0.4.27
-rich~=13.7.1
+rich==13.7.1
+PyMuPDF==1.25.5  # Correct package name
+habanero==2.2.0
+torch==2.7.1
+transformers==4.52.4
 
-python-magic~=0.4.27
-fitz~=0.0.1.dev2
-habanero~=2.2.0
-torch~=2.7.1
-transformers~=4.52.4
-pillow~=10.2.0
-nameparser~=1.1.3
