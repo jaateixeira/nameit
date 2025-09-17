@@ -89,9 +89,11 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher would become "
 
 # Requirements # 
 
-* Python 3
-* Habanero (NameIt will try install it if you don't have it)
-* PyMuPDF (NameIt will try install it if you don't have it)
+* Python 3 -  Tested on > 3.10
+* Habanero 
+* PyMuPDF
+* Transformers
+* PyTorch
 
 We suport the ext3, ext4, xfs, zfs, NTFS, APFS, HFS+ and xFAT filesystems. Support for FAT32 pending. 
 Should work in most modern computers running Linux, macOS and Windows. Problems could arise with the use of old  USB flash drives  and SDcard disks in old Linux Kernels. 
