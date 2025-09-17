@@ -6,8 +6,10 @@ from utils.unified_logger import console, logger
 import re
 from typing import Optional, Dict, Any, Union
 
-# Opening PDF file, reading the first page and extracting DOI with a very common patter
-import fitz  # PyMuPDF
+
+
+import pymupdf  # This is the package name
+
 
 # To query CrossRef API online
 from habanero import Crossref
@@ -176,7 +178,7 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
         """
     try:
         # Open the PDF file
-        with fitz.open(pdf_file) as pdf_document:
+        with pymupdf.open(pdf_file) as pdf_document:
             first_page = pdf_document[0]
             text = first_page.get_text("text")
 
