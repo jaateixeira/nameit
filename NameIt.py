@@ -250,6 +250,9 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
 
     """
 
+    if args.verbose:
+        print(logger.info(f"Processing {nameit_path}"))
+
     # Test if the path is a directory
     if os.path.isdir(nameit_path):
         for root, dirs, files in os.walk(nameit_path):
@@ -263,7 +266,6 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
 
     # Handle if the path is a single pdf file
     elif os.path.isfile(nameit_path) and is_pdf_file(nameit_path):
-
         try:
             logger.info(f"validating path {nameit_path}")
             if is_valid_path(nameit_path):
