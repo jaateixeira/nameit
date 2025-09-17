@@ -25,7 +25,7 @@ from models.exceptions import InvalidNameItPath
 
 from utils.unified_logger import logger
 from utils.unified_console import console
-from utils.validators import is_valid_path
+from utils.validators import is_valid_path, is_pdf_file
 
 
 def normalize_path(nameit_path: Union[str, PathLike]) -> Path:
@@ -262,7 +262,7 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
                 process_folder_or_file(root + filename, cli_args)
 
     # Handle if the path is a single pdf file
-    elif os.path.isfile(nameit_path) and os.path.lower().endswith('.pdf'):
+    elif os.path.isfile(nameit_path) and is_pdf_file(nameit_path):
 
         try:
             logger.info(f"validating path {nameit_path}")
@@ -303,7 +303,9 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
                 console.print(f"[green]File renamed to: {new_file_name}[/green]")
         else:
             console.print(f"[yellow]DOI not found in {pdf_file_path}.[/yellow]")
-
+    else:
+        print(f"[ERROR] Neither a directory nor valid pdf file")
+        sys.exit()
 
 def list_files_and_directories(fs_path: PathLike) -> None:
     """
@@ -360,7 +362,7 @@ def execute_main_logic() -> None:
 
     if args.dry_run:
         process_folder_or_file_dry_run(path, args)
-    # process_folder_or_file(path, args)
+    process_folder_or_file(path, args)
 
 
 if __name__ == "__main__":

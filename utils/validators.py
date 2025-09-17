@@ -15,6 +15,7 @@ from models.types import PathLike
 from utils.unified_console import console
 from utils.unified_logger import logger
 
+
 from models.exceptions import InvalidCrossrefDataError, NameItError, InvalidNameItPath
 
 
@@ -207,7 +208,7 @@ def validate_publisher_name(publisher_name: str) -> str:
         raise ValueError(f"Invalid publisher name provided {publisher_name}")
 
 
-def is_pdf_file(file_path: str) -> bool:
+def is_pdf_file(file_path: PathLike) -> bool:
     mime = magic.from_file(file_path, mime=True)
     return mime == 'application/pdf'
 
@@ -272,7 +273,7 @@ def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> 
     logger.info(f"Validator.py - Testing valid_path with path_to_rename={path_to_rename}")
 
     # --- Step 1: Reject wildcards ---
-    if any(char in path_to_rename for char in '*?[]'):
+    if any(char in str(path_to_rename) for char in '*?[]'):
         raise InvalidNameItPath( path_to_rename,
             f"Wildcards (*, ?, []) are not allowed in path_to_rename: '{path_to_rename}'. ",
             "Provide a literal path_to_rename or quote the argument (e.g., \"*.pdf\")."
@@ -285,7 +286,7 @@ def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> 
     # --- Step 3: Validate files ---
     if os.path.isfile(path_to_rename):
         # Check extension
-        if not path_to_rename.lower().endswith('.pdf'):
+        if not str(path_to_rename).lower().endswith('.pdf'):
             raise InvalidNameItPath(
                 path_to_rename,
                 f"File '{path_to_rename}' is not a PDF (expected '.pdf' extension).",
