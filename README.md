@@ -101,18 +101,23 @@ Should work in most modern computers running Linux, macOS and Windows. Problems 
 NameIt is pure python3 code.  It depends on several online public packages, published on the Python Package Index (PyPI). Those dependencies can be installed then using pip/pip3 - the package installer for Python. 
 
 ## Habanero ##
-`$ pip (or pip3) install habanero` <- required to call the Crossref API (it returns the article's metadata for a given DOI identifier). 
+`$ pip3  install habanero` <- required to call the Crossref API (it returns the article's metadata for a given DOI identifier). 
 
 ## PyMuPDF ##
 
-`$ pip (or pip3) install PyMuPDF` <- required to process the first page of a pdf article. 
+`$ pip3 install PyMuPDF` <- required to process the first page of a pdf article. 
 
+## HuggingFace Transformers, PyTorch  ##
+`$ pip3 install transformers torch ` <- required to use the LayoutLM AI/ML model 
 
 # How to use it 
 
-* Install the Habanero and PyMuPDF dependencies 
+* Clone/Fork the repository or download its source code 
+* Install the Habanero, PyMuPDF, Transformers, PyTorch and other dependencies
+  `$ pip3 install -r requirements.txt`  
 
 * Invoke the Python script and pass the file to be renamed as an argument.
+* Last tested on Mac and Linux with Python 3.10, 3.11, 3.12 and 3.13
 * You can also pass a folder as an argument and NameIt will attempt to rename all pdf files in that folder.
 
 ## Example: ## 
@@ -122,6 +127,7 @@ NameIt is pure python3 code.  It depends on several online public packages, publ
 
 `$ NameIt research-articles-collection`
 
+`$ NameIt --help`
 
 
 
