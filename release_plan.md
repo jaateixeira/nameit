@@ -53,3 +53,5 @@
     - LinkedIn technical deep-dive  
     - Python subreddit/Twitter thread
     - Bibliographic software
+
+Optimistic. Just a plan.
