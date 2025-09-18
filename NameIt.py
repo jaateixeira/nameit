@@ -18,14 +18,15 @@ from rich.panel import Panel
 from rich.table import Table
 
 from NameItCrossRef import extract_publication_metadata_from_crossref_using_doi_in_pdf
-from models.types import PathLike,  Nameit_processing_args
 
 from models.error_model import ErrorModel
 from models.exceptions import InvalidNameItPath
+from models.types import PathLike, Nameit_processing_args
 
 from utils.unified_logger import logger
 from utils.unified_console import console
 from utils.validators import is_valid_path, is_pdf_file
+
 
 
 def normalize_path(nameit_path: Union[str, PathLike]) -> Path:
@@ -74,7 +75,7 @@ def parse_arguments() -> argparse.Namespace:
         description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
         epilog="[dim]Created with ❤️ using Python[/dim]")
 
-    parser.add_argument("path", help="Path to PDF file or folder containing PDFs", type=is_valid_path)
+    parser.add_argument("path", help="Path to PDF file or folder containing PDFs", type=PathLike)
 
     # Logging level options
     log_group = parser.add_mutually_exclusive_group()

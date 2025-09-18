@@ -150,9 +150,6 @@ def validate_title(retrieved_article_title: str) -> str:
 
     if retrieved_article_title is None:
         raise ValueError(f"Invalid title {retrieved_article_title=}provided. Can't be none")
-    if not isinstance(retrieved_article_title, str):
-        raise ValueError(f"Invalid title {retrieved_article_title=}provided. Must be a str instance.")
-
     if retrieved_article_title.strip() == "":
         raise ValueError(f"Invalid title {retrieved_article_title=}provided. Can be an empty string")
 
@@ -214,10 +211,22 @@ def is_pdf_file(file_path: PathLike) -> bool:
 
 
 def is_valid_path(path_to_rename: PathLike) -> bool:
-    if is_valid_path_to_a_file_than_should_be_renamed(path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename):
+    if path_to_rename == '-':
+        console.print("[red]Path cannot be a '-' string.[/red]")
+        console.print("[red]Cli commands '- x' should be '-x' <- frequent error [/red]")
+        return False
+
+    if (is_valid_path_to_a_file_than_should_be_renamed(path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename)):
         return True
     else:
         return False
+
+
+def valid_path(path_to_rename: PathLike) -> PathLike:
+
+    if (is_valid_path_to_a_file_than_should_be_renamed(path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename)):
+        return path_to_rename
+
 
 
 def is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename: PathLike) -> bool:
