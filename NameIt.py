@@ -305,9 +305,6 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
                 console.print(f"[green]File renamed to: {new_file_name}[/green]")
         else:
             console.print(f"[yellow]DOI not found in {pdf_file_path}.[/yellow]")
-    else:
-        print(f"[ERROR] Neither a directory nor valid pdf file")
-        sys.exit()
 
 def list_files_and_directories(fs_path: PathLike) -> None:
     """
@@ -359,10 +356,20 @@ def parse_and_validate_arguments() -> argparse.Namespace:
 
 def execute_main_logic() -> None:
     path: PathLike = normalize_path(args.path)
+
+    console.print(f"\n[blue]{args=}[/blue]")
+
     if args.verbose or args.very_verbose:
         list_files_and_directories(path)
 
+    if args.verbose or args.very_verbose:
+        console.print(f"\n[blue]{args=}[/blue]")
+
     if args.dry_run:
+        if args.use_crossref or args.use_layoutlmv3 or args.use_pdf_metadata:
+            console.print(f"[ERROR] Dry run only inspect but takes not given action[/red]")
+            console.print(f"[ERROR] No method (i.e., crossred, layoutlvm3 or pdf_metada) should be given[/red]")
+            sys.exit()
         process_folder_or_file_dry_run(path, args)
     process_folder_or_file(path, args)
 
