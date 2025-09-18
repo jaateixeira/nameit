@@ -172,7 +172,7 @@ def validate_year(pub_year: int) -> int:
 
 def validate_journal(journal: str) -> str:
     """Validate that the journal is a non-empty string."""
-    if not isinstance(journal, str) and journal.strip():
+    if not isinstance(journal, str):
         raise ValueError("Invalid journal name provided.")
     return journal
 
@@ -213,9 +213,11 @@ def is_pdf_file(file_path: PathLike) -> bool:
     return mime == 'application/pdf'
 
 
-def is_valid_path(path_to_rename: PathLike) -> PathLike:
+def is_valid_path(path_to_rename: PathLike) -> bool:
     if is_valid_path_to_a_file_than_should_be_renamed(path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename):
-        return path_to_rename
+        return True
+    else:
+        return False
 
 
 def is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename: PathLike) -> bool:
