@@ -89,30 +89,37 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher would become "
 
 # Requirements # 
 
-* Python 3
-* Habanero (NameIt will try install it if you don't have it)
-* PyMuPDF (NameIt will try install it if you don't have it)
+* Python 3 -  Tested on > 3.10
+* Habanero 
+* PyMuPDF
+* Transformers
+* PyTorch
 
 We suport the ext3, ext4, xfs, zfs, NTFS, APFS, HFS+ and xFAT filesystems. Support for FAT32 pending. 
 Should work in most modern computers running Linux, macOS and Windows. Problems could arise with the use of old  USB flash drives  and SDcard disks in old Linux Kernels. 
 
 # Dependencies 
 
-NameIt tries to automatically install its dependencies. If it fails, you can try to install them using pip - the package installer for Python
+NameIt is pure python3 code.  It depends on several online public packages, published on the Python Package Index (PyPI). Those dependencies can be installed then using pip/pip3 - the package installer for Python. 
 
 ## Habanero ##
-`$ pip (or pip3) install habanero`
+`$ pip3  install habanero` <- required to call the Crossref API (it returns the article's metadata for a given DOI identifier). 
 
 ## PyMuPDF ##
 
-`$ pip (or pip3) install PyMuPDF`
+`$ pip3 install PyMuPDF` <- required to process the first page of a pdf article. 
 
+## HuggingFace Transformers, PyTorch  ##
+`$ pip3 install transformers torch ` <- required to use the LayoutLM AI/ML model 
 
 # How to use it 
 
-* Install the Habanero and PyMuPDF dependencies 
+* Clone/Fork the repository or download its source code 
+* Install the Habanero, PyMuPDF, Transformers, PyTorch and other dependencies
+  `$ pip3 install -r requirements.txt`  
 
 * Invoke the Python script and pass the file to be renamed as an argument.
+* Last tested on Mac and Linux with Python 3.10, 3.11, 3.12 and 3.13
 * You can also pass a folder as an argument and NameIt will attempt to rename all pdf files in that folder.
 
 ## Example: ## 
@@ -122,6 +129,7 @@ NameIt tries to automatically install its dependencies. If it fails, you can try
 
 `$ NameIt research-articles-collection`
 
+`$ NameIt --help`
 
 
 
