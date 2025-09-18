@@ -193,7 +193,7 @@ def validate_publication(publication: Dict) -> Dict:
         errors["title"] = "Invalid or missing title."
 
     if "journal" not in publication or not validate_journal(publication["journal"]):
-        errors["journal"] = "Invalid or missing journal."
+        errors["journal"] = "Invalid or missfrom NameIt import normalize_pathing journal."
 
     return errors
 
@@ -216,17 +216,22 @@ def is_valid_path(path_to_rename: PathLike) -> bool:
         console.print("[red]Cli commands '- x' should be '-x' <- frequent error [/red]")
         return False
 
-    if (is_valid_path_to_a_file_than_should_be_renamed(path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename)):
+    if pathlib.Path(path_to_rename).is_file and is_valid_path_to_a_file_than_should_be_renamed(path_to_rename):
         return True
-    else:
-        return False
+    elif pathlib.Path(path_to_rename).is_dir and is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename):
+        return True
+    return False
 
 
 def valid_path(path_to_rename: PathLike) -> PathLike:
 
-    if (is_valid_path_to_a_file_than_should_be_renamed(path_to_rename) or is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename)):
+    if pathlib.Path(path_to_rename).is_file and is_valid_path_to_a_file_than_should_be_renamed(path_to_rename):
         return path_to_rename
-
+    elif pathlib.Path(path_to_rename).is_dir() and  is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename):
+        return path_to_rename
+    raise InvalidNameItPath(path_to_rename,
+                            "Invalid path",
+                            "check the if the provided path is a file or a directory")
 
 
 def is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename: PathLike) -> bool:
@@ -316,7 +321,7 @@ def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> 
 
         file_size_in_kb = os.path.getsize(path_to_rename) / 1024
 
-        print(f"UnitTest - file size of path_to_rename={path_to_rename} is {file_size_in_kb} KB")
+        console.print(f"File size of path_to_rename={path_to_rename} is {file_size_in_kb} KB")
 
         if file_size_in_kb < min_pdf_file_size_in_kb:
             raise InvalidNameItPath(

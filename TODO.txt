@@ -1,6 +1,11 @@
-Make it working for cross reff
+Debug with -v -vv all the way
+
+
+
+Make it working for cross re
+f
 Make it working for keywords 
-Fix valid path unittest errors 
+
 
 Add use of recursive  -r and dry-run support to features list 
 

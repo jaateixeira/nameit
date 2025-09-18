@@ -25,8 +25,7 @@ from models.types import PathLike, Nameit_processing_args
 
 from utils.unified_logger import logger
 from utils.unified_console import console
-from utils.validators import is_valid_path, is_pdf_file
-
+from utils.validators import is_valid_path, is_pdf_file, valid_path
 
 
 def normalize_path(nameit_path: Union[str, PathLike]) -> Path:
@@ -75,7 +74,7 @@ def parse_arguments() -> argparse.Namespace:
         description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
         epilog="[dim]Created with ❤️ using Python[/dim]")
 
-    parser.add_argument("path", help="Path to PDF file or folder containing PDFs", type=PathLike)
+    parser.add_argument("path", help="Path to PDF file or folder containing PDFs", type=Path)
 
     # Logging level options
     log_group = parser.add_mutually_exclusive_group()
@@ -376,5 +375,10 @@ def execute_main_logic() -> None:
 
 
 if __name__ == "__main__":
+
+    logger.info(f"Parsing and validating cli arguments: {sys.argv}")
+
     args: argparse.Namespace = parse_and_validate_arguments()
+    logger.info(f"Parsed and validated cli arguments: {args}")
+
     execute_main_logic()
