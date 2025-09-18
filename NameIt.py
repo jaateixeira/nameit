@@ -333,6 +333,10 @@ def list_files_and_directories(fs_path: PathLike) -> None:
 
 
 def parse_and_validate_arguments() -> argparse.Namespace:
+    """
+
+    :rtype: object
+    """
     console.print("\n[bold green]Parsing arguments[/bold green]")
     parsed_args: argparse.Namespace = parse_arguments()
     console.print(f"{type(parsed_args)} {parsed_args=}")
@@ -346,7 +350,7 @@ def parse_and_validate_arguments() -> argparse.Namespace:
         if not is_there_internet_access():
             console.print(
                 "\n [red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
-        sys.exit(1)
+            sys.exit(1)
 
     if parsed_args.use_layoutlmv3:
         console.print("\n[bold green]We will use LayoutLMv3 to find the required information[/bold green]")
@@ -356,6 +360,7 @@ def parse_and_validate_arguments() -> argparse.Namespace:
 
 def execute_main_logic() -> None:
     path: PathLike = normalize_path(args.path)
+
 
     console.print(f"\n[blue]{args=}[/blue]")
 
@@ -379,6 +384,7 @@ if __name__ == "__main__":
     logger.info(f"Parsing and validating cli arguments: {sys.argv}")
 
     args: argparse.Namespace = parse_and_validate_arguments()
+
     logger.info(f"Parsed and validated cli arguments: {args}")
 
     execute_main_logic()
