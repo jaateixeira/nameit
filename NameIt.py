@@ -337,9 +337,20 @@ def parse_and_validate_arguments() -> argparse.Namespace:
 
     :rtype: object
     """
-    console.print("\n[bold green]Parsing arguments[/bold green]")
+
+    vv_flags = {'-v', '-vv', '--verbose', '--very-verbose'}
+    vv_found = vv_flags.intersection(sys.argv)
+
+    v_flags = {'-v', '--verbose',}
+    v_found = v_flags.intersection(sys.argv)
+
+    if v_found:
+        console.print("\n[bold blue]Parsing arguments:[/bold blue]")
+
     parsed_args: argparse.Namespace = parse_arguments()
-    console.print(f"{type(parsed_args)} {parsed_args=}")
+
+    if vv_found:
+        console.print(f"\t{type(parsed_args)} {parsed_args=}")
 
     if parsed_args.use_pdf_metadata:
         console.print("\n[bold green]We are going to take pdf own metadata in consideration[/bold green]")
@@ -354,6 +365,9 @@ def parse_and_validate_arguments() -> argparse.Namespace:
 
     if parsed_args.use_layoutlmv3:
         console.print("\n[bold green]We will use LayoutLMv3 to find the required information[/bold green]")
+
+    if v_found or vv_found:
+        console.print("\n[bold green]Arguments were successfully parsed 😀[/bold green]")
 
     return parsed_args
 

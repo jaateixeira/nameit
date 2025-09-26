@@ -1,6 +1,4 @@
-Valid path and is valid path issue
-
-Make it working for cross reff
+Test -v and -vv diff on cli
 Make it working for keywords 
 Fix valid path unittest errors 
 
