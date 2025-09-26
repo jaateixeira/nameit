@@ -25,8 +25,7 @@ from models.types import PathLike, Nameit_processing_args
 
 from utils.unified_logger import logger
 from utils.unified_console import console
-from utils.validators import is_valid_path, is_pdf_file
-
+from utils.validators import is_valid_path, is_pdf_file, valid_path
 
 
 def normalize_path(nameit_path: Union[str, PathLike]) -> Path:
@@ -75,7 +74,7 @@ def parse_arguments() -> argparse.Namespace:
         description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
         epilog="[dim]Created with ❤️ using Python[/dim]")
 
-    parser.add_argument("path", help="Path to PDF file or folder containing PDFs", type=PathLike)
+    parser.add_argument("path", help="Path to PDF file or folder containing PDFs", type=Path)
 
     # Logging level options
     log_group = parser.add_mutually_exclusive_group()
@@ -334,6 +333,10 @@ def list_files_and_directories(fs_path: PathLike) -> None:
 
 
 def parse_and_validate_arguments() -> argparse.Namespace:
+    """
+
+    :rtype: object
+    """
     console.print("\n[bold green]Parsing arguments[/bold green]")
     parsed_args: argparse.Namespace = parse_arguments()
     console.print(f"{type(parsed_args)} {parsed_args=}")
@@ -347,7 +350,7 @@ def parse_and_validate_arguments() -> argparse.Namespace:
         if not is_there_internet_access():
             console.print(
                 "\n [red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
-        sys.exit(1)
+            sys.exit(1)
 
     if parsed_args.use_layoutlmv3:
         console.print("\n[bold green]We will use LayoutLMv3 to find the required information[/bold green]")
@@ -357,6 +360,7 @@ def parse_and_validate_arguments() -> argparse.Namespace:
 
 def execute_main_logic() -> None:
     path: PathLike = normalize_path(args.path)
+
 
     console.print(f"\n[blue]{args=}[/blue]")
 
@@ -376,5 +380,11 @@ def execute_main_logic() -> None:
 
 
 if __name__ == "__main__":
+
+    logger.info(f"Parsing and validating cli arguments: {sys.argv}")
+
     args: argparse.Namespace = parse_and_validate_arguments()
+
+    logger.info(f"Parsed and validated cli arguments: {args}")
+
     execute_main_logic()

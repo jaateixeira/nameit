@@ -7,9 +7,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from utils.validators import is_valid_path, \
-    is_valid_path_to_a_directory_with_files_that_should_be_renamed, \
-    is_valid_path_to_a_file_than_should_be_renamed  # If renamed to NameIt.py
+from utils.validators import is_valid_path, valid_path
 
 print("\033[31mRED\033[0m \033[32mGREEN\033[0m")  # Should show colored words
 
@@ -119,7 +117,7 @@ class TestPathValidator(unittest.TestCase):
             return path
         else:
             # Use the original valid_path function with all validations
-            return is_valid_path(path)
+            return valid_path(path)
 
     def test_valid_pdf(self):
         """Accept valid PDF file."""
@@ -133,22 +131,22 @@ class TestPathValidator(unittest.TestCase):
     def test_empty_dir(self):
         """Reject empty directory."""
         with self.assertRaises(argparse.ArgumentTypeError):
-            is_valid_path_to_a_directory_with_files_that_should_be_renamed()
+            valid_path(self.empty_dir)
 
     def test_non_empty_dir(self):
         """Accept non-empty directory."""
-        self.assertEqual(is_valid_path(self.non_empty_dir), self.non_empty_dir)
+        self.assertEqual(valid_path(self.non_empty_dir), self.non_empty_dir)
 
     def test_nonexistent_path(self):
         """Reject nonexistent path."""
         fake_path = os.path.join(self.test_data_dir, "ghost.pdf")
         with self.assertRaises(argparse.ArgumentTypeError):
-            is_valid_path(fake_path)
+            valid_path(fake_path)
 
     def test_wildcards(self):
         """Reject paths with wildcards."""
         with self.assertRaises(argparse.ArgumentTypeError):
-            is_valid_path(os.path.join(self.test_data_dir, "*.pdf"))
+            valid_path(os.path.join(self.test_data_dir, "*.pdf"))
 
     def test_pdf_with_missing_dash_in_header(self):
         """Reject PDF with header '%PDF' (missing '-')."""
@@ -156,7 +154,7 @@ class TestPathValidator(unittest.TestCase):
         with open(path, "wb") as f:
             f.write(b"%PDFInvalid")  # Missing '-'
         with self.assertRaises(argparse.ArgumentTypeError):
-            is_valid_path(path)
+            valid_path(path)
 
     def test_pdf_with_leading_whitespace(self):
         """Accept PDF with leading whitespace before '%PDF-'."""
@@ -259,7 +257,7 @@ class TestPathValidator(unittest.TestCase):
         with open(path, "wb") as f:
             f.write(b"PK\x03\x04")  # ZIP header
         with self.assertRaises(argparse.ArgumentTypeError):
-            is_valid_path(path)
+            valid_path(path)
 
     def test_argparse_integration(self):
         """Test valid_path as an argparse type."""
