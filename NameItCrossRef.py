@@ -182,7 +182,7 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
             first_page = pdf_document[0]
             text = first_page.get_text("text")
 
-        console.print(f"Looking for a DOI in the first page of the {pdf_file} pdf file")
+        console.print(f"[blue]Looking for a DOI in the first page of the {pdf_file} file in pdf format[/blue]")
 
         # Define the DOI pattern
         doi_pattern = r'10[.][\d.]{1,15}\/[-._;:()\/A-Za-z0-9<>]+[A-Za-z0-9]'

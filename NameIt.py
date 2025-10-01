@@ -26,7 +26,8 @@ from models.types import PathLike, Nameit_processing_args
 
 from utils.unified_logger import logger
 from utils.unified_console import console
-from utils.validators import is_valid_path, is_pdf_file, valid_path
+from utils.validators import is_valid_path, is_pdf_file, valid_path, \
+    is_valid_path_to_a_directory_with_files_that_should_be_renamed
 
 
 def normalize_path(nameit_path: Union[str, PathLike]) -> Path:
@@ -272,10 +273,8 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
             logger.info(f"Validating path {nameit_path}")
             if is_valid_path(nameit_path):
                 validated_path = nameit_path
-                if cli_args.verbose:
-                    logger.info(f"The {validated_path} : {type(validated_path)} was validated without raising exceptions")
-                elif cli_args.very_verbose:
-                    logger.info(f"The {inspect(validated_path)} {validated_path} was validated without raising exceptions")
+                if cli_args.verbose or args.very_verbose:
+                    logger.info(f"The path {validated_path} of type {type(validated_path)}  was validated without raising exceptions")
             else:
                 return None
         except InvalidNameItPath as e:
@@ -373,6 +372,16 @@ def parse_and_validate_arguments() -> argparse.Namespace:
 
 
     logger.info("Arguments were successfully parsed 😀")
+
+    "Validating the path"
+
+    if  is_valid_path_to_a_directory_with_files_that_should_be_renamed(parsed_args.path):
+        console.print(f"[green]\t {parsed_args.path} is a valid path to a directory or file that should be renamed  😀[/green]")
+    else:
+        console.print(f"[red]\t Invalid path {parsed_args.path}[/red]")
+
+
+
 
     if parsed_args.verbose or parsed_args.very_verbose:
         logger.info(f"Parsed and validated cli arguments 😀")
