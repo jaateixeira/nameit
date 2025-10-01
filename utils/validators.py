@@ -286,7 +286,6 @@ def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> 
         argparse.ArgumentTypeError: If any validation fails, with a descriptive message.
     """
 
-    logger.info(f"Validator.py - Testing valid_path with path_to_rename={path_to_rename}")
 
     # --- Step 1: Reject wildcards ---
     if any(char in str(path_to_rename) for char in '*?[]'):
@@ -330,7 +329,7 @@ def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> 
                 f"( {file_size_in_kb} < {min_pdf_file_size_in_kb}KB).",
                 "check the  path_to_rename, is it a pdf? looks so small!! ")
 
-
+    logger.info(f"{path_to_rename} is a valid path to be renamed 😀")
     return True
 
 

@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from typing import Union, Dict
 
+from rich import inspect
 from rich.panel import Panel
 from rich.table import Table
 
@@ -114,10 +115,10 @@ def is_there_internet_access():
     try:
         response = requests.get("http://www.google.com/", headers=headers,timeout=5)
         response.raise_for_status()  # Raises an HTTPError for bad responses (4XX, 5XX)
-        console.print(f"\t Online access to internet [green]checked[/green] ")
+        console.print(f"\t Online access to internet [green]checked[/green] 👍")
         return True
     except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as e:
-        console.print(f"\t Online access to internet [green]failed[/green] ")
+        console.print(f"\t Online access to internet [green]failed[/green] 👎")
         console.print(e)
         return False
 
@@ -267,10 +268,11 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
     # Handle if the path is a single pdf file
     elif os.path.isfile(nameit_path) and is_pdf_file(nameit_path):
         try:
-            logger.info(f"validating path {nameit_path}")
+            logger.info(f"Validating path {nameit_path}")
             if is_valid_path(nameit_path):
                 validated_path = nameit_path
-                logger.info(f"path {validated_path} is validated without raising exceptions")
+                if cli_args.recursive.verbose or cli_args.very_verbose:
+                    logger.info(f"The {inspect(validated_path)} {validated_path} is validated without raising exceptions")
             else:
                 return None
         except InvalidNameItPath as e:
@@ -338,18 +340,11 @@ def parse_and_validate_arguments() -> argparse.Namespace:
     :rtype: object
     """
 
-    vv_flags = {'-v', '-vv', '--verbose', '--very-verbose'}
-    vv_found = vv_flags.intersection(sys.argv)
-
-    v_flags = {'-v', '--verbose',}
-    v_found = v_flags.intersection(sys.argv)
-
-    if v_found:
-        console.print("\n[bold blue]Parsing arguments:[/bold blue]")
 
     parsed_args: argparse.Namespace = parse_arguments()
 
-    if vv_found:
+    if parsed_args.verbose or parsed_args.very_verbose:
+        console.print("[blue]Parsing arguments:[/blue]")
         console.print(f"\t{type(parsed_args)} {parsed_args=}")
 
     if parsed_args.use_pdf_metadata:
@@ -357,7 +352,7 @@ def parse_and_validate_arguments() -> argparse.Namespace:
 
     if parsed_args.use_crossref:
         console.print(
-            "\n[bold green]We will attempt find DOIs in the pdf first page to call the Crossref API[/bold green]")
+            "\n[bold green]We will attempt find DOIs in the pdf first page to call the Crossref API. Internet connection required.[/bold green]")
         if not is_there_internet_access():
             console.print(
                 "\n [red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
@@ -366,17 +361,22 @@ def parse_and_validate_arguments() -> argparse.Namespace:
     if parsed_args.use_layoutlmv3:
         console.print("\n[bold green]We will use LayoutLMv3 to find the required information[/bold green]")
 
-    if v_found or vv_found:
-        console.print("\n[bold green]Arguments were successfully parsed 😀[/bold green]")
 
+    logger.info("Arguments were successfully parsed 😀")
+
+    if parsed_args.verbose or parsed_args.very_verbose:
+        logger.info(f"Parsed and validated cli arguments 😀")
+        logger.info(f"\t{parsed_args=}")
     return parsed_args
 
 
-def execute_main_logic() -> None:
+def execute_main_logic(args: argparse.Namespace) -> None:
     path: PathLike = normalize_path(args.path)
 
-
-    console.print(f"\n[blue]{args=}[/blue]")
+    if args.verbose or args.very_verbose:
+        console.print(f"\n[blue] Processing main logic [/blue]")
+    if args.very_verbose:
+        console.print(f"\n[blue]{args=}[/blue]")
 
     if args.verbose or args.very_verbose:
         list_files_and_directories(path)
@@ -399,6 +399,4 @@ if __name__ == "__main__":
 
     args: argparse.Namespace = parse_and_validate_arguments()
 
-    logger.info(f"Parsed and validated cli arguments: {args}")
-
-    execute_main_logic()
+    execute_main_logic(args)
