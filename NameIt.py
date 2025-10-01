@@ -133,8 +133,8 @@ def remove_invalid_characters(text):
     return cleaned_text
 
 
-# Saving required information from the metadata to the file and removing invalid characters
-def rename_pdf_file(pdf_file: os.path, new_file_name: str) -> None:
+# Interfaces with OS to  rename pdf_file to new_file_name
+def rename_pdf_file(pdf_file: PathLike, new_file_name: str) -> None:
     logger.info(f"renaming pdf file  {pdf_file} to {new_file_name}")
 
     os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_file_name))
@@ -161,7 +161,8 @@ def process_folder_or_file_dry_run(
         Dictionary mapping original paths to their proposed new paths
     """
 
-    console.print(f"[blue]Listing  {fs_path} [/blue] with {args.recursive=}")
+    if args.verbose or args.very_verbose:
+        console.print(f"[blue] Processing folder or file (dry run)  {fs_path} [/blue] with {args.recursive=}")
 
     file_count: int = 0
     pdf_to_be_renamed: int = 0
@@ -252,7 +253,7 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
     """
 
     if args.verbose:
-        print(logger.info(f"Processing {nameit_path}"))
+        print(logger.info(f"Processing file of folder {nameit_path}"))
 
     # Test if the path is a directory
     if os.path.isdir(nameit_path):
@@ -271,8 +272,10 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
             logger.info(f"Validating path {nameit_path}")
             if is_valid_path(nameit_path):
                 validated_path = nameit_path
-                if cli_args.recursive.verbose or cli_args.very_verbose:
-                    logger.info(f"The {inspect(validated_path)} {validated_path} is validated without raising exceptions")
+                if cli_args.verbose:
+                    logger.info(f"The {validated_path} : {type(validated_path)} was validated without raising exceptions")
+                elif cli_args.very_verbose:
+                    logger.info(f"The {inspect(validated_path)} {validated_path} was validated without raising exceptions")
             else:
                 return None
         except InvalidNameItPath as e:
@@ -298,22 +301,29 @@ def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespac
             console.print("[red]Method not known.[/red]")
             console.print("[blue]Are you sure you don't want to use pdf metadata? "
                           "or the Crossref API? Or the LayoutLMv3 model?[/blue]")
-            sys.exit()
+            return None
 
         # Process metadata if found
         if extracted_publication_from_crossref_api:
-            new_file_name = rename_pdf_file(pdf_file_path, str(extracted_publication_from_crossref_api))
-            if new_file_name:
-                console.print(f"[green]File renamed to: {new_file_name}[/green]")
+            new_file_name = str(extracted_publication_from_crossref_api)
+            rename_pdf_file(pdf_file_path, new_file_name)
+            if not os.path.exists(new_file_name):
+                console.print(f"[red] Abort: {pdf_file_path} should be renamed to {new_file_name}, but {new_file_name} does not exist [/red]")
+                sys.exit(1)
+            console.print(f"[green] File renamed to: {new_file_name}[/green]")
         else:
-            console.print(f"[yellow]DOI not found in {pdf_file_path}.[/yellow]")
+            console.print(f"[yellow] DOI not found in {pdf_file_path}.[/yellow]")
+            console.print(f"[red] ERROR: Without finding a DOI in the first page of {pdf_file_path}, NameIt can't query the CrossRef API[/red]")
+            console.print(f"[red] Aborted[/red]")
+    return None
+
 
 def list_files_and_directories(fs_path: PathLike) -> None:
     """
     List files and directories in the given directory.
     If recursive is True, list them recursively.
     """
-    console.print(f"[blue]Listing  {fs_path} [/blue] with {args.recursive=}")
+    console.print(f"[blue]\tListing files and directories in  {fs_path} [/blue] with {args.recursive=}")
 
     def list_items(directory: Path, depth: int = 0):
         indent = "  " * depth
@@ -366,23 +376,21 @@ def parse_and_validate_arguments() -> argparse.Namespace:
 
     if parsed_args.verbose or parsed_args.very_verbose:
         logger.info(f"Parsed and validated cli arguments 😀")
-        logger.info(f"\t{parsed_args=}")
+        logger.info(f"{parsed_args=}")
     return parsed_args
 
 
-def execute_main_logic(args: argparse.Namespace) -> None:
+def execute_main_logic() -> None:
     path: PathLike = normalize_path(args.path)
 
     if args.verbose or args.very_verbose:
-        console.print(f"\n[blue] Processing main logic [/blue]")
-    if args.very_verbose:
-        console.print(f"\n[blue]{args=}[/blue]")
+        console.print(f"\n[blue]Processing main logic [/blue]")
 
     if args.verbose or args.very_verbose:
         list_files_and_directories(path)
 
     if args.verbose or args.very_verbose:
-        console.print(f"\n[blue]{args=}[/blue]")
+        console.print(f"\n[blue]\t CLI {args=}[/blue]")
 
     if args.dry_run:
         if args.use_crossref or args.use_layoutlmv3 or args.use_pdf_metadata:
@@ -390,13 +398,16 @@ def execute_main_logic(args: argparse.Namespace) -> None:
             console.print(f"[ERROR] No method (i.e., crossred, layoutlvm3 or pdf_metada) should be given[/red]")
             sys.exit()
         process_folder_or_file_dry_run(path, args)
-    process_folder_or_file(path, args)
+    else:
+        process_folder_or_file(path, args)
 
 
 if __name__ == "__main__":
 
     logger.info(f"Parsing and validating cli arguments: {sys.argv}")
 
+    # Args keeps info on the parsed and validated cli arguments
     args: argparse.Namespace = parse_and_validate_arguments()
 
-    execute_main_logic(args)
+    # Will
+    execute_main_logic()
