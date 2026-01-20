@@ -1,20 +1,22 @@
-from typing import Optional, Dict, List, Any
 import os
 import argparse
 import sys
 from datetime import datetime
 import unicodedata
 import magic
+import pathlib
+
+from typing import Optional, Dict, Union, Any
+
 
 from nameparser import HumanName
 
-from habanero import Crossref
-from jsonschema import validate, ValidationError
-
+from models.types import PathLike
 from utils.unified_console import console
 from utils.unified_logger import logger
 
-from models.exceptions import InvalidCrossrefDataError, NameItError
+
+from models.exceptions import InvalidCrossrefDataError, NameItError, InvalidNameItPath
 
 
 def validate_first_name(name: str) -> bool:
@@ -132,25 +134,22 @@ def validate_family_names_in_metadata_retrieved_from_cross_ref(meta_data_authors
     #console.print(f"{meta_data_authors=}")
 
     for author in meta_data_authors:
+        validate_author_family_name(author['family'])
         #console.print(f"{author=}")
         #console.print(f"{author['family']=}")
-        validate_author_family_name(author['family'])
 
     return meta_data_authors
 
 
 def validate_title(retrieved_article_title: str) -> str:
     """Validate that the title is either None or a non-empty string.
-    @param retrieved_title:
+    @param retrieved_article_title:
     @return:
     """
     logger.info(f"Validating title {retrieved_article_title}")
 
     if retrieved_article_title is None:
         raise ValueError(f"Invalid title {retrieved_article_title=}provided. Can't be none")
-    if not isinstance(retrieved_article_title, str):
-        raise ValueError(f"Invalid title {retrieved_article_title=}provided. Must be a str instance.")
-
     if retrieved_article_title.strip() == "":
         raise ValueError(f"Invalid title {retrieved_article_title=}provided. Can be an empty string")
 
@@ -170,7 +169,7 @@ def validate_year(pub_year: int) -> int:
 
 def validate_journal(journal: str) -> str:
     """Validate that the journal is a non-empty string."""
-    if not isinstance(journal, str) and journal.strip():
+    if not isinstance(journal, str):
         raise ValueError("Invalid journal name provided.")
     return journal
 
@@ -194,7 +193,7 @@ def validate_publication(publication: Dict) -> Dict:
         errors["title"] = "Invalid or missing title."
 
     if "journal" not in publication or not validate_journal(publication["journal"]):
-        errors["journal"] = "Invalid or missing journal."
+        errors["journal"] = "Invalid or missfrom NameIt import normalize_pathing journal."
 
     return errors
 
@@ -206,12 +205,68 @@ def validate_publisher_name(publisher_name: str) -> str:
         raise ValueError(f"Invalid publisher name provided {publisher_name}")
 
 
-def is_pdf_file(file_path: str) -> bool:
+def is_pdf_file(file_path: PathLike) -> bool:
     mime = magic.from_file(file_path, mime=True)
     return mime == 'application/pdf'
 
 
-def valid_path(path_to_rename: os.path) -> os.path:
+def is_valid_path(path_to_rename: PathLike) -> bool:
+    if path_to_rename == '-':
+        console.print("[red]Path cannot be a '-' string.[/red]")
+        console.print("[red]Cli commands '- x' should be '-x' <- frequent error [/red]")
+        return False
+
+    if pathlib.Path(path_to_rename).is_file and is_valid_path_to_a_file_than_should_be_renamed(path_to_rename):
+        return True
+    elif pathlib.Path(path_to_rename).is_dir and is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename):
+        return True
+    return False
+
+
+def valid_path(path_to_rename: PathLike) -> PathLike:
+
+    if pathlib.Path(path_to_rename).is_file and is_valid_path_to_a_file_than_should_be_renamed(path_to_rename):
+        return path_to_rename
+    elif pathlib.Path(path_to_rename).is_dir() and  is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename):
+        return path_to_rename
+    raise InvalidNameItPath(path_to_rename,
+                            "Invalid path",
+                            "check the if the provided path is a file or a directory")
+
+
+def is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename: PathLike) -> bool:
+    """
+    Validate that the path_to_rename is a non-empty directory containing at least one PDF file.
+
+    Args:
+        path_to_rename (PathLike): Input path to validate (pathlib path or str).
+
+    Returns:
+        bool: True if the directory is valid, False otherwise.
+    """
+    # Check if the path exists and is a directory
+    if not os.path.isdir(path_to_rename):
+        raise InvalidNameItPath(path_to_rename,
+                                "either path does not exist and or its not a directory",
+                                "check the if the provided path is a valid directory")
+
+    # Check if the directory is not empty
+    if not os.listdir(path_to_rename):
+        raise InvalidNameItPath(path_to_rename,
+                                "The directory is empty",
+                                "check the if the provided path is  a non empty directory")
+
+    # Check if there is at least one PDF file in the directory
+    pdf_files = [f for f in os.listdir(path_to_rename) if f.lower().endswith('.pdf')]
+    if not pdf_files:
+        raise InvalidNameItPath(path_to_rename,
+                                "The directory does not contain pdf files",
+                                "check the if the provided path is  a non empty directory with pdf files")
+
+    return True
+
+
+def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> bool:
     """
     Validate that the path_to_rename exists, is a file/directory, and meets PDF/directory constraints.
 
@@ -219,43 +274,46 @@ def valid_path(path_to_rename: os.path) -> os.path:
     1. No wildcards (e.g., `*.pdf`) are present.
     2. The path_to_rename exists on the filesystem.
     3. If a file, it has a `.pdf` extension and a valid PDF header.
-    4. If a directory, it is not empty.
-    5. If a file, it has at least 2KB <- otherwise is probably not an academic article in pdf
+    4. If a file, it has at least 2KB <- otherwise is probably not an academic article in pdf
 
     Args:
-        path_to_rename (os.path): Input path_to_rename to validate.
+        path_to_rename (PathLike): Input path to validate (pathlib path or str).
 
     Returns:
-        str: The validated path_to_rename if all checks pass.
+       boolean: True for valid, False for invalid
 
     Raises:
         argparse.ArgumentTypeError: If any validation fails, with a descriptive message.
     """
 
-    print(f"UnitTest - Testing valid_path with path_to_rename={path_to_rename}")
+    logger.info(f"Validator.py - Testing valid_path with path_to_rename={path_to_rename}")
 
     # --- Step 1: Reject wildcards ---
-    if any(char in path_to_rename for char in '*?[]'):
-        raise argparse.ArgumentTypeError(
-            f"Wildcards (*, ?, []) are not allowed in path_to_rename: '{path_to_rename}'. "
+    if any(char in str(path_to_rename) for char in '*?[]'):
+        raise InvalidNameItPath( path_to_rename,
+            f"Wildcards (*, ?, []) are not allowed in path_to_rename: '{path_to_rename}'. ",
             "Provide a literal path_to_rename or quote the argument (e.g., \"*.pdf\")."
         )
 
     # --- Step 2: Check existence ---
     if not os.path.exists(path_to_rename):
-        raise argparse.ArgumentTypeError(f"path_to_rename '{path_to_rename}' does not exist.")
+        raise InvalidNameItPath(path_to_rename,f"path_to_rename '{path_to_rename}' does not exist.","check the path_to_rename")
 
     # --- Step 3: Validate files ---
     if os.path.isfile(path_to_rename):
         # Check extension
-        if not path_to_rename.lower().endswith('.pdf'):
-            raise argparse.ArgumentTypeError(
-                f"File '{path_to_rename}' is not a PDF (expected '.pdf' extension)."
+        if not str(path_to_rename).lower().endswith('.pdf'):
+            raise InvalidNameItPath(
+                path_to_rename,
+                f"File '{path_to_rename}' is not a PDF (expected '.pdf' extension).",
+                "check the path_to_rename"
             )
         # Check PDF magic number
         if not is_pdf_file(path_to_rename):
-            raise argparse.ArgumentTypeError(
-                f"File '{path_to_rename}' is not a valid PDF (missing '%PDF-' header)."
+            raise InvalidNameItPath(
+                path_to_rename,
+                f"File '{path_to_rename}' is not a valid PDF (missing '%PDF-' header).",
+                "check the path_to_rename, is it a pdf? "
             )
         # Check file size is at minimum 20KB
 
@@ -263,27 +321,17 @@ def valid_path(path_to_rename: os.path) -> os.path:
 
         file_size_in_kb = os.path.getsize(path_to_rename) / 1024
 
-        print(f"UnitTest - file size of path_to_rename={path_to_rename} is {file_size_in_kb} KB")
+        console.print(f"File size of path_to_rename={path_to_rename} is {file_size_in_kb} KB")
 
         if file_size_in_kb < min_pdf_file_size_in_kb:
-            raise argparse.ArgumentTypeError(
+            raise InvalidNameItPath(
+                path_to_rename,
                 f"File '{path_to_rename}' seems took small to be a valid PDF article "
-                f"( {file_size_in_kb} < {min_pdf_file_size_in_kb}KB).")
+                f"( {file_size_in_kb} < {min_pdf_file_size_in_kb}KB).",
+                "check the  path_to_rename, is it a pdf? looks so small!! ")
 
-    # --- Step 4: Validate directories ---
-    elif os.path.isdir(path_to_rename):
-        if not os.listdir(path_to_rename):
-            raise argparse.ArgumentTypeError(
-                f"Directory '{path_to_rename}' is empty. Provide a non-empty directory."
-            )
 
-    # --- Step 5: Reject invalid types (e.g., symlinks, devices) ---
-    else:
-        raise argparse.ArgumentTypeError(
-            f"path_to_rename '{path_to_rename}' is neither a file nor a directory."
-        )
-
-    return path_to_rename
+    return True
 
 
 def validate_author_family_name(author_family_name: str) -> str:
@@ -407,11 +455,11 @@ def validate_container_title(container_title):
 
 
 # Validate that the publisher field is a string
-def validate_publisher(publisher:str) -> str:
+def validate_publisher(publisher: str) -> str:
     if not isinstance(publisher, str):
-        error_mesg = f"Publisher is not a string: {publisher}"
-        logger.error(error_mesg)
-        raise NameItError(error_mesg)
+        error_message = f"Publisher is not a string: {publisher}"
+        logger.error(error_message)
+        raise NameItError(error_message)
 
     return publisher
 

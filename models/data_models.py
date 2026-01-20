@@ -1,6 +1,8 @@
+import os
+import pathlib
 import re
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Union
 from nameparser import HumanName
 from utils.validators import (
     validate_first_name,
@@ -12,6 +14,7 @@ from utils.validators import (
     validate_author,
     validate_publication, validate_author_family_name, validate_publisher
 )
+
 
 
 @dataclass

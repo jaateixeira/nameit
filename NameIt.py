@@ -4,21 +4,57 @@
 
 import re
 import string
-import subprocess
+import requests
 import sys
 import unicodedata
 import argparse
 import os
 
+# To allow functions to accept paths as pathlib paths or str
+from pathlib import Path
+from typing import Union, Dict
+
+from rich.panel import Panel
+from rich.table import Table
 
 from NameItCrossRef import extract_publication_metadata_from_crossref_using_doi_in_pdf
+
 from models.error_model import ErrorModel
 from models.exceptions import InvalidNameItPath
+from models.types import PathLike, Nameit_processing_args
 
 from utils.unified_logger import logger
 from utils.unified_console import console
-from utils.validators import validate_metadata, validate_author_family_name, validate_title, validate_year, \
-    validate_container_title, validate_publisher, valid_path
+from utils.validators import is_valid_path, is_pdf_file, valid_path
+
+
+def normalize_path(nameit_path: Union[str, PathLike]) -> Path:
+    """
+    Convert input to a Path object regardless of input type.
+
+    Args:
+        nameit_path (Union[str, PathLike]): Input path to normalize.
+
+    Returns:
+        Path: A pathlib.Path object representing the normalized path.
+
+    Raises:
+        TypeError: If the input type is not a string or a path-like object.
+    """
+    if nameit_path is None:
+        raise TypeError("Input path cannot be None.")
+
+    if isinstance(nameit_path, Path):
+        return nameit_path
+
+    if isinstance(nameit_path, str):
+        return Path(nameit_path)
+
+    # Handle other path-like objects
+    try:
+        return Path(nameit_path)
+    except Exception as e:
+        raise TypeError(f"Could not convert input to Path object: {e}. Verify your given opath {nameit_path}")
 
 
 def validate_no_wildcards(file_path: str):
@@ -26,15 +62,19 @@ def validate_no_wildcards(file_path: str):
         raise argparse.ArgumentTypeError("Wildcards (*, ?, []) are not allowed. Provide a literal path.")
     if not os.path.exists(file_path):
         raise argparse.ArgumentTypeError(f"Path '{file_path}' does not exist.")
-    return path
+    return file_path
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
+    """
+
+    @rtype: argparse.Namespace
+    """
     parser = argparse.ArgumentParser(
         description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
         epilog="[dim]Created with ❤️ using Python[/dim]")
 
-    parser.add_argument("path", help="Path to PDF file or folder containing PDFs", type=valid_path)
+    parser.add_argument("path", help="Path to PDF file or folder containing PDFs", type=Path)
 
     # Logging level options
     log_group = parser.add_mutually_exclusive_group()
@@ -46,24 +86,39 @@ def parse_arguments():
                            help="Disable all logging output")
 
     # Metadata source options
-    meta_group = parser.add_mutually_exclusive_group()
+    meta_group = parser.add_argument_group()
     meta_group.add_argument("-p", "--use-pdf-metadata", action="store_true",
                             help="Use PDF embedded metadata only",
                             )
     meta_group.add_argument("-c", "--use-crossref", action="store_true",
-                            help="Use Crossref API (default)", default=True)
+                            help="Use Crossref API (default)")
     meta_group.add_argument("-l", "--use-layoutlmv3", action="store_true",
                             help="Use LayoutLMv3 model for extraction")
+    # Support for recursion in directory trees
+    parser.add_argument('-r', '--recursive', action='store_true', help='Enable recursive processing')
+
+    # Add the --dry-run option
+    parser.add_argument('-d','--dry-run', action='store_true',
+                        help='Inspect the given path but take no actions on the filesystem')
 
     return parser.parse_args()
 
 
-# Checking for internet connection
-def check_internet_access():
+def is_there_internet_access():
+    headers = {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+    }
+
     try:
-        subprocess.check_call(["ping", "-c", "1", "google.com"])
+        response = requests.get("http://www.google.com/", headers=headers,timeout=5)
+        response.raise_for_status()  # Raises an HTTPError for bad responses (4XX, 5XX)
+        console.print(f"\t Online access to internet [green]checked[/green] ")
         return True
-    except subprocess.CalledProcessError:
+    except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as e:
+        console.print(f"\t Online access to internet [green]failed[/green] ")
+        console.print(e)
         return False
 
 
@@ -77,21 +132,100 @@ def remove_invalid_characters(text):
     return cleaned_text
 
 
-
-
-
-
 # Saving required information from the metadata to the file and removing invalid characters
-def rename_pdf_file(pdf_file:os.path, new_file_name:str) -> None:
+def rename_pdf_file(pdf_file: os.path, new_file_name: str) -> None:
     logger.info(f"renaming pdf file  {pdf_file} to {new_file_name}")
 
     os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_file_name))
 
-
     return None
 
 
-def process_folder_or_file(file_path: str, cli_args: argparse.Namespace) -> None:
+def process_folder_or_file_dry_run(
+        fs_path: PathLike,
+        nameit_args: Nameit_processing_args
+) -> None:
+    """
+    Simulates processing by recursively listing all files and directories found at the specified path,
+    counting PDF files, and displaying a summary of rename operations that would occur.
+
+    Args:
+        fs_path: The path to a file or directory (accepts str, os.PathLike, or Path)
+        nameit_args: Parsed command-line arguments with these attributes:
+            - recursive (bool): Whether to traverse directories recursively
+            - verbose (bool): Show detailed output
+            - debug (bool): Show debug information
+
+    Returns:
+        Dictionary mapping original paths to their proposed new paths
+    """
+
+    console.print(f"[blue]Listing  {fs_path} [/blue] with {args.recursive=}")
+
+    file_count: int = 0
+    pdf_to_be_renamed: int = 0
+    dir_count: int = 0
+
+    rename_operations: dict[PathLike, PathLike] = {}
+
+    # Convert input to Path object regardless of input type
+    normalized_path: PathLike = normalize_path(fs_path)
+
+
+    # Initialize summary table
+    summary_table = Table(title="Dry Run Summary", show_header=True, header_style="bold magenta")
+    summary_table.add_column("Metric", style="cyan")
+    summary_table.add_column("Count", style="green")
+
+    console.print(f"[yellow]DEBUG: Starting dry run for path: {normalized_path}[/yellow]")
+
+    def list_items(directory: Path, depth: int = 0):
+        indent = "  " * depth
+        nonlocal file_count, dir_count, pdf_to_be_renamed
+
+        try:
+            for item in directory.iterdir():
+                if item.is_dir():
+                    console.print(f"{indent}[blue][DIR][/blue] {item.name}")
+                    if args.recursive:
+                        list_items(item, depth + 1)
+                elif item.is_file():
+                    console.print(f"{indent}[green][FILE][/green] {item.name}")
+                    file_count += 1
+                    if item.suffix.lower() == '.pdf':
+                        pdf_to_be_renamed += 1
+                        rename_operations[item] = "To be renamed"
+                        # if cli_args.verbose:
+                        console.print(
+                            f"{indent}[green]PDF: {item.name}[/green] → [yellow]{rename_operations[item]}[/yellow]")
+                    else:
+                        rename_operations[item] = "Not to be renamed"
+                        console.print(
+                            f"{indent}[red]PDF: {item.name}[/red] → [yellow]{rename_operations[item]}[/yellow]")
+
+        except PermissionError:
+            print(f"{indent}[ERROR] Permission denied: {directory}")
+
+    if normalized_path.is_dir():
+        list_items(normalized_path)
+    elif normalized_path.is_file():
+        console.print(f"[green][FILE][/green] {normalized_path} is to be renamed")
+
+    elif not normalized_path.exists():
+        error_message = f"[red]Error: Path does not exist - {normalized_path}[/red]"
+        console.print(error_message)
+        raise InvalidNameItPath(normalized_path, error_message, f"check the {normalize_path=} and {fs_path=}")
+
+    # Generate summary
+    summary_table.add_row("Total Directories", str(dir_count))
+    summary_table.add_row("Total Files", str(file_count))
+    summary_table.add_row("PDFs to be Renamed", str(pdf_to_be_renamed))
+
+    console.print(Panel(summary_table, title="[bold]Dry Run Results[/bold]"))
+
+    return None
+
+def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespace) -> None:
     """
     Process either a folder or a PDF file based on the given path and arguments.
 
@@ -100,7 +234,7 @@ def process_folder_or_file(file_path: str, cli_args: argparse.Namespace) -> None
     extraction method is determined by the provided arguments.
 
     Args:
-        file_path (str): The path to either a directory or a PDF file to be processed.
+        nameit_path (os.path): The path to either a directory or a PDF file to be processed.
         cli_args (Any): Command line arguments object containing processing options:
             - use_pdf_metadata (bool): Whether to use PDF embedded metadata
             - use_crossref (bool): Whether to use Crossref API
@@ -111,30 +245,53 @@ def process_folder_or_file(file_path: str, cli_args: argparse.Namespace) -> None
 
     Raises:
         SystemExit: If an invalid processing method is specified or if the input path is invalid.
+        @param nameit_path:
         @param cli_args:
-        @param file_path:
+
     """
-    try:
-        valid_path(file_path)
-    except InvalidNameItPath as e:
-        error = ErrorModel.capture(e)
-        error.display_user_friendly()
-        raise InvalidNameItPath(
-            path=path,
-            reason="Invalid path",
-            suggestion="Check file extension, or provide a different file or directory."
-        )
+
+    if args.verbose:
+        print(logger.info(f"Processing {nameit_path}"))
 
     # Test if the path is a directory
-    if os.path.isdir(file_path):
-        process_folder(file_path)
+    if os.path.isdir(nameit_path):
+        for root, dirs, files in os.walk(nameit_path):
+            # Goes after sub_directories  TODO Add -r to options
+            for dir_name in dirs:
+                process_folder_or_file(dir_name, cli_args)
+
+            # Goes after files
+            for filename in files:
+                process_folder_or_file(root + filename, cli_args)
 
     # Handle if the path is a single pdf file
-    elif os.path.isfile(file_path) and path.lower().endswith('.pdf'):
+    elif os.path.isfile(nameit_path) and is_pdf_file(nameit_path):
+        try:
+            logger.info(f"validating path {nameit_path}")
+            if is_valid_path(nameit_path):
+                validated_path = nameit_path
+                logger.info(f"path {validated_path} is validated without raising exceptions")
+            else:
+                return None
+        except InvalidNameItPath as e:
+            error = ErrorModel.capture(e)
+            error.display_user_friendly()
+            console.print(f"[red] Invalid file path {nameit_path}[/red]")
+            console.print(f"[blue] Caught exception:{e}")
+            raise InvalidNameItPath(
+                path=str(nameit_path),
+                reason="Invalid path",
+                suggestion="Check file extension, or provide a different file or directory."
+            )
+        except argparse.ArgumentTypeError as e:
+            console.print(f"[red] Argument file path {nameit_path}[/red]")
+            console.print(f"[blue] Caught exception:{e}")
+
         # Verify at least one processing method is specified
         if cli_args.use_pdf_metadata or cli_args.use_crossref or cli_args.use_layoutlmv3:
-            pdf_file = file_path
-            extracted_publication_from_crossref_api = extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file)
+            pdf_file_path = nameit_path
+            extracted_publication_from_crossref_api = (
+                extract_publication_metadata_from_crossref_using_doi_in_pdf(str(pdf_file_path)))
         else:
             console.print("[red]Method not known.[/red]")
             console.print("[blue]Are you sure you don't want to use pdf metadata? "
@@ -143,52 +300,91 @@ def process_folder_or_file(file_path: str, cli_args: argparse.Namespace) -> None
 
         # Process metadata if found
         if extracted_publication_from_crossref_api:
-            new_file_name = rename_pdf_file(pdf_file,str(extracted_publication_from_crossref_api))
+            new_file_name = rename_pdf_file(pdf_file_path, str(extracted_publication_from_crossref_api))
             if new_file_name:
                 console.print(f"[green]File renamed to: {new_file_name}[/green]")
         else:
-            console.print(f"[yellow]DOI not found in {pdf_file}.[/yellow]")
-    else:
-        console.print("[red]Invalid input. Please provide a valid folder path or PDF file path.[/red]")
+            console.print(f"[yellow]DOI not found in {pdf_file_path}.[/yellow]")
 
+def list_files_and_directories(fs_path: PathLike) -> None:
+    """
+    List files and directories in the given directory.
+    If recursive is True, list them recursively.
+    """
+    console.print(f"[blue]Listing  {fs_path} [/blue] with {args.recursive=}")
 
-# Processing folder
-def process_folder(folder_path):
-    for root, _, files in os.walk(folder_path):
-        for file in files:
-            if file.endswith(".pdf"):
-                pdf_file = os.path.join(root, file)
-                extracted_publication_from_crossref_api = extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file)
-                if extracted_publication_from_crossref_api:
-                    new_file_name = rename_pdf_file(pdf_file, str(extracted_publication_from_crossref_api))
-                    if new_file_name:
-                        console.print(f"[green]File renamed to: {new_file_name}[/green]")
+    def list_items(directory: Path, depth: int = 0):
+        indent = "  " * depth
+        try:
+            for item in directory.iterdir():
+                if item.is_dir():
+                    console.print(f"{indent}[blue][DIR][/blue] {item.name}")
+                    if args.recursive:
+                        list_items(item, depth + 1)
                 else:
-                    console.print(f"[yellow]DOI not found in {pdf_file}.[/yellow]")
+                    console.print(f"{indent}[green][FILE][/green] {item.name}")
+        except PermissionError:
+            print(f"{indent}[ERROR] Permission denied: {directory}")
+
+    if fs_path.is_dir():
+        list_items(fs_path)
+    if fs_path.is_file():
+        console.print(f"[green][FILE][/green] {fs_path} is to be renamed")
 
 
-# Main code
+def parse_and_validate_arguments() -> argparse.Namespace:
+    """
+
+    :rtype: object
+    """
+    console.print("\n[bold green]Parsing arguments[/bold green]")
+    parsed_args: argparse.Namespace = parse_arguments()
+    console.print(f"{type(parsed_args)} {parsed_args=}")
+
+    if parsed_args.use_pdf_metadata:
+        console.print("\n[bold green]We are going to take pdf own metadata in consideration[/bold green]")
+
+    if parsed_args.use_crossref:
+        console.print(
+            "\n[bold green]We will attempt find DOIs in the pdf first page to call the Crossref API[/bold green]")
+        if not is_there_internet_access():
+            console.print(
+                "\n [red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
+            sys.exit(1)
+
+    if parsed_args.use_layoutlmv3:
+        console.print("\n[bold green]We will use LayoutLMv3 to find the required information[/bold green]")
+
+    return parsed_args
+
+
+def execute_main_logic() -> None:
+    path: PathLike = normalize_path(args.path)
+
+
+    console.print(f"\n[blue]{args=}[/blue]")
+
+    if args.verbose or args.very_verbose:
+        list_files_and_directories(path)
+
+    if args.verbose or args.very_verbose:
+        console.print(f"\n[blue]{args=}[/blue]")
+
+    if args.dry_run:
+        if args.use_crossref or args.use_layoutlmv3 or args.use_pdf_metadata:
+            console.print(f"[ERROR] Dry run only inspect but takes not given action[/red]")
+            console.print(f"[ERROR] No method (i.e., crossred, layoutlvm3 or pdf_metada) should be given[/red]")
+            sys.exit()
+        process_folder_or_file_dry_run(path, args)
+    process_folder_or_file(path, args)
+
+
 if __name__ == "__main__":
 
-    console.print("\n [bold green]. Parsing arguments")
+    logger.info(f"Parsing and validating cli arguments: {sys.argv}")
 
-    args = parse_arguments()
+    args: argparse.Namespace = parse_and_validate_arguments()
 
-    console.print(f"{args=}")
+    logger.info(f"Parsed and validated cli arguments: {args}")
 
-    if args.use_pdf_metadata:
-        console.print("\n [bold green].Taking pdf metadata in consideration")
-    if args.use_crossref:
-        console.print("\n [bold green].Attempting to find DOIs to call the Crossref API")
-
-    if args.use_layoutlmv3:
-        console.print("\n [bold green]. Using LayoutLMv3 to find the required information" )
-
-    if args.use_crossref and not args.use_pdf_metadata and not args.use_layoutlmv3 and not check_internet_access():
-        console.print(
-            "[red]Internet Connection Unavailable. The program requires internet access for Crossref API.[/red]")
-        sys.exit(1)
-
-    path = args.path
-
-    process_folder_or_file(path, args)
+    execute_main_logic()

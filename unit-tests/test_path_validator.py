@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from utils.validators import valid_path  # If renamed to NameIt.py
+from utils.validators import is_valid_path, valid_path
 
 print("\033[31mRED\033[0m \033[32mGREEN\033[0m")  # Should show colored words
 
@@ -126,7 +126,7 @@ class TestPathValidator(unittest.TestCase):
     def test_invalid_pdf_header(self):
         """Reject .pdf file with invalid header."""
         with self.assertRaises(argparse.ArgumentTypeError):
-            valid_path(self.invalid_pdf)
+            is_valid_path(self.invalid_pdf)
 
     def test_empty_dir(self):
         """Reject empty directory."""
@@ -169,7 +169,7 @@ class TestPathValidator(unittest.TestCase):
         with open(path, "wb") as f:
             f.write(b"Garbage%PDF-")  # Header not at start
         with self.assertRaises(argparse.ArgumentTypeError):
-            valid_path(path)
+            is_valid_path(path)
 
     def test_symlink_to_valid_pdf(self):
         """Accept symlink pointing to a valid PDF."""
@@ -189,7 +189,7 @@ class TestPathValidator(unittest.TestCase):
         symlink_path = os.path.join(self.test_data_dir, "invalid_link.pdf")
 
         with self.assertRaises(argparse.ArgumentTypeError):
-            valid_path(symlink_path)
+            is_valid_path(symlink_path)
 
     def test_file_permissions(self):
         """Test how valid_path handles a file with no permissions."""
@@ -208,7 +208,7 @@ class TestPathValidator(unittest.TestCase):
 
             # Test valid_path with the restricted file and assert the expected exception
             with self.assertRaises(PermissionError):
-                valid_path(path)
+                is_valid_path(path)
 
         finally:
             # Restore permissions for cleanup
@@ -219,7 +219,7 @@ class TestPathValidator(unittest.TestCase):
         path = os.path.join(self.test_data_dir, "empty.pdf")
         open(path, "wb").close()  # Create 0-byte file
         with self.assertRaises(argparse.ArgumentTypeError):
-            valid_path(path)
+            is_valid_path(path)
 
     def test_corrupted_pdf(self):
         """Reject corrupted PDF with valid header but invalid content."""
@@ -228,7 +228,7 @@ class TestPathValidator(unittest.TestCase):
             f.write(b"%PDF-")  # Valid header
             f.write(os.urandom(100))  # Random garbage
         with self.assertRaises(argparse.ArgumentTypeError):
-            valid_path(path)  # Fails if deeper validation is added
+            is_valid_path(path)  # Fails if deeper validation is added
 
     def test_pdf_with_version_header(self):
         """Accept PDF with version header (e.g., '%PDF-1.4')."""
@@ -249,7 +249,7 @@ class TestPathValidator(unittest.TestCase):
             print(f"Skipping assertion due to condition being True -> condition_to_skip_test={condition_to_skip_test}")
         else:
             with self.assertRaises(argparse.ArgumentTypeError):
-                valid_path(path)
+                is_valid_path(path)
 
     def test_zip_renamed_to_pdf(self):
         """Reject .zip file renamed to .pdf."""

@@ -1,4 +1,15 @@
-TODO ASAP
+Debug with -v -vv all the way
+
+
+
+Make it working for cross re
+f
+Make it working for keywords 
+
+
+Add use of recursive  -r and dry-run support to features list 
+
+implement get_filename_in_nameit_standard as aliad to __str__
 
 Make the exception invalid cross ref data to be raised
 Should create and return a publication
@@ -11,6 +22,7 @@ Fix night build action
 Fix all errors / fails
 Add more test on Journal Name
 Deliver to pypy rep
+
 Release 1
 OSS journals 
 

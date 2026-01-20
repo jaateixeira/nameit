@@ -1,13 +1,13 @@
 from transformers import LayoutLMv3Processor, LayoutLMv3ForTokenClassification
 from PIL import Image
 import torch
-import fitz
+import pymupdf  # This is the package name
 
-from utils.validators import validate
+
 
 def extract_info_from_pdf_using_ai_layout_ai_model(pdf_path):
     # Load the PDF
-    doc = fitz.open(pdf_path)
+    doc = pymupdf.open(pdf_path)
     page = doc.load_page(0)  # Load the first page
     pix = page.get_pixmap()
     image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
