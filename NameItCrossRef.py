@@ -207,13 +207,103 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
                 
                 console.print(f"  Checking page {actual_page_index + 1} of {len(pdf_document)}")
                 
-                # Define the DOI pattern
-                doi_pattern = r'10[.][\d.]{1,15}\/[-._;:()\/A-Za-z0-9<>]+[A-Za-z0-9]'
+                # Method 1: First find all DOI-like patterns, then filter out JSTOR
+                # Basic DOI pattern (captures most DOIs)
+                basic_doi_pattern = r'\b(10\.\d{4,}(?:\.\d+)*/[^\s"\'<>()\[\]{}]*[^\s"\'<>()\[\]{}.])'
                 
-                # Search for DOI in the text
-                doi_match = re.search(doi_pattern, text)
-                if doi_match:
-                    doi = doi_match.group()
+                # Find all potential DOIs
+                potential_dois = list(re.finditer(basic_doi_pattern, text, re.IGNORECASE))
+                
+                doi_match = None
+                doi_text = None
+                
+                for match in potential_dois:
+                    candidate = match.group(0)
+                    
+                    # Clean up the DOI
+                    candidate = candidate.rstrip('.,;:')
+                    
+                    # Method 1: Check if this is a JSTOR URL by examining the match and context
+                    # Get a larger context around the match to check for URL patterns
+                    start_pos = match.start()
+                    end_pos = match.end()
+                    
+                    # Look at context before and after
+                    context_start = max(0, start_pos - 100)  # Look 100 chars before
+                    context_end = min(len(text), end_pos + 50)  # Look 50 chars after
+                    full_context = text[context_start:context_end]
+                    
+                    # Check if this appears to be a JSTOR URL
+                    # JSTOR URLs typically have patterns like:
+                    # - https://www.jstor.org/stable/10.xxxx/xxxx
+                    # - http://jstor.org/stable/10.xxxx/xxxx
+                    # - www.jstor.org/stable/10.xxxx/xxxx
+                    
+                    # Extract the full potential URL containing this match
+                    # Look for URL patterns ending at whitespace or punctuation
+                    url_pattern = r'(https?://[^\s<>"\'()]+|www\.[^\s<>"\'()]+)'
+                    urls_in_context = re.findall(url_pattern, full_context, re.IGNORECASE)
+                    
+                    is_jstor_url = False
+                    for url in urls_in_context:
+                        if candidate in url and ('jstor.org' in url.lower() or '/stable/' in url.lower()):
+                            is_jstor_url = True
+                            console.print(f"  Skipping JSTOR URL: {url[:80]}...")
+                            break
+                    
+                    if is_jstor_url:
+                        continue
+                    
+                    # Additional check: if the candidate itself looks like a JSTOR pattern
+                    if '/stable/10.' in candidate.lower() or 'jstor.org' in candidate.lower():
+                        continue
+                    
+                    # Method 2: Check if the match is preceded by URL indicators
+                    # Simple check: look for http://, https://, or www. immediately before
+                    text_before = text[max(0, start_pos - 20):start_pos]
+                    url_indicators = ['http://', 'https://', 'www.']
+                    
+                    # If there's a URL indicator close before and JSTOR in the text, skip
+                    has_url_indicator = any(indicator in text_before.lower() for indicator in url_indicators)
+                    has_jstor_nearby = 'jstor' in text_before.lower() or 'jstor' in text[start_pos:end_pos + 20].lower()
+                    
+                    if has_url_indicator and has_jstor_nearby:
+                        continue
+                    
+                    # Clean any URL prefixes from the candidate
+                    url_prefixes = [
+                        'https://doi.org/', 'http://doi.org/',
+                        'https://dx.doi.org/', 'http://dx.doi.org/',
+                        'doi.org/', 'dx.doi.org/'
+                    ]
+                    
+                    original_candidate = candidate
+                    for prefix in url_prefixes:
+                        if candidate.lower().startswith(prefix):
+                            candidate = candidate[len(prefix):]
+                            break
+                    
+                    # Validate the cleaned DOI
+                    # Basic validation: should start with 10. and have a slash
+                    if not candidate.startswith('10.'):
+                        continue
+                    
+                    if '/' not in candidate:
+                        continue
+                    
+                    # Should not contain spaces
+                    if ' ' in candidate:
+                        continue
+                    
+                    # Final check: should match the basic DOI pattern after cleaning
+                    if re.match(r'^10\.\d{4,}(?:\.\d+)*/[^\s]+$', candidate, re.IGNORECASE):
+                        doi_match = match
+                        doi_text = candidate
+                        console.print(f"  Found candidate DOI: {doi_text}")
+                        break
+                
+                if doi_match and doi_text:
+                    doi = doi_text
                     logger.info(f"Extracting DOI: {doi} from file: {pdf_file} (found on page {actual_page_index + 1})")
                     
                     meta_data_fetched_via_CrossRef_API: Union[Publication, None] = fetch_metadata_by_doi(doi)
@@ -231,7 +321,8 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
                             return article_publication
                         else:
                             console.print("\n[bold red]The metadata returned by CrossRef is invalid")
-                            return None
+                            # Don't return None here, continue checking other pages
+                            continue
                     else:
                         console.print(f"\n[bold yellow]No metadata found for DOI: {doi}")
                         # Continue checking other pages
@@ -256,6 +347,69 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
         console.print(f"\n[bold red]Unexpected error: {e}")
 
     return None
+
+
+# Alternative simpler function that extracts DOIs while excluding JSTOR
+def extract_doi_without_jstor(text):
+    """
+    Extract DOIs from text while excluding JSTOR URLs.
+    
+    Args:
+        text (str): Text to search
+        
+    Returns:
+        list: List of found DOIs
+    """
+    # First, find all URLs in the text
+    url_pattern = r'https?://[^\s<>"\']+|www\.[^\s<>"\']+'
+    urls = re.findall(url_pattern, text, re.IGNORECASE)
+    
+    # Filter out JSTOR URLs
+    non_jstor_urls = [url for url in urls if 'jstor.org' not in url.lower() and '/stable/' not in url.lower()]
+    
+    # Now look for DOIs that aren't in URLs (or are in non-JSTOR URLs)
+    doi_pattern = r'\b(10\.\d{4,}(?:\.\d+)*/[^\s"\'<>()\[\]{}]*[^\s"\'<>()\[\]{}.])'
+    
+    all_matches = list(re.finditer(doi_pattern, text, re.IGNORECASE))
+    valid_dois = []
+    
+    for match in all_matches:
+        doi_candidate = match.group(0).rstrip('.,;:')
+        start, end = match.start(), match.end()
+        
+        # Check if this DOI is part of any URL
+        is_part_of_url = False
+        for url in urls:
+            url_start = text.find(url)
+            if url_start != -1:
+                url_end = url_start + len(url)
+                if start >= url_start and end <= url_end:
+                    is_part_of_url = True
+                    # If it's part of a URL, only accept if it's a non-JSTOR URL
+                    if 'jstor.org' in url.lower() or '/stable/' in url.lower():
+                        # Skip JSTOR URLs
+                        continue
+                    else:
+                        # Extract DOI from the URL (remove URL parts)
+                        for prefix in ['https://doi.org/', 'http://doi.org/', 'https://dx.doi.org/', 'http://dx.doi.org/', 'doi.org/']:
+                            if url.lower().startswith(prefix):
+                                doi_candidate = url[len(prefix):]
+                                break
+        
+        # If not part of a URL, or part of a non-JSTOR URL, add it
+        if not is_part_of_url or (is_part_of_url and doi_candidate.startswith('10.')):
+            # Clean any remaining URL prefixes
+            for prefix in ['https://doi.org/', 'http://doi.org/', 'https://dx.doi.org/', 'http://dx.doi.org/', 'doi.org/']:
+                if doi_candidate.lower().startswith(prefix):
+                    doi_candidate = doi_candidate[len(prefix):]
+                    break
+            
+            # Validate
+            if re.match(r'^10\.\d{4,}(?:\.\d+)*/[^\s]+$', doi_candidate, re.IGNORECASE):
+                valid_dois.append(doi_candidate)
+    
+    return valid_dois
+
 
 # Using Crossref API to match the extracted DOI
 def fetch_metadata_by_doi(doi: str) -> Optional[Dict[str, Any]]:
