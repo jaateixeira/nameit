@@ -25,3 +25,5 @@ pip3 install nameparser
 pip3 install jsonschema
 pip3 install requests_cache
 pip3 install pymupdf --break-system-packages
+pip3 uninstall pymupdf --break-system-packages
+sudo apt-get install python3-nameparser

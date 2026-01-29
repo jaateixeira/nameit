@@ -168,63 +168,94 @@ def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publicati
 
 def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Union[Publication, None]:
     """
-        Extract metadata from a PDF file by identifying the DOI on the first page and fetching its metadata.
+    Extract metadata from a PDF file by identifying the DOI on the first, second, 
+    and last pages and fetching its metadata.
 
-        Args:
-            pdf_file (str): Path to the PDF file.
+    Args:
+        pdf_file (str): Path to the PDF file.
 
-        Returns:
-            Optional[Dict]: Metadata associated with the DOI if found, otherwise None.
-        """
+    Returns:
+        Optional[Dict]: Metadata associated with the DOI if found, otherwise None.
+    """
     try:
-        # Open the PDF file
+        console.print(f"Looking for a DOI in the {pdf_file} pdf file")
+        
         with pymupdf.open(pdf_file) as pdf_document:
-            first_page = pdf_document[0]
-            text = first_page.get_text("text")
-
-        console.print(f"Looking for a DOI in the first page of the {pdf_file} pdf file")
-
-        # Define the DOI pattern
-        doi_pattern = r'10[.][\d.]{1,15}\/[-._;:()\/A-Za-z0-9<>]+[A-Za-z0-9]'
-
-        # Search for DOI in the text
-        doi_match = re.search(doi_pattern, text)
-        if doi_match:
-            doi = doi_match.group()
-            logger.info(f"Extracting DOI: {doi} from file: {pdf_file}")
-
-
-            meta_data_fetched_via_CrossRef_API: Union[Publication,None] = fetch_metadata_by_doi(doi)
-
-            console.print("\n [bold green]. CrossRef API returned metadata 😀")
-            console.print("\n [bold blue]. Time to validate the returned metadata")
-
-            article_publication: Publication = validate_crossref_returned_meta_data(meta_data_fetched_via_CrossRef_API)
-
-            if article_publication:
-                console.print(f"\n [bold green]. CrossRef API returned metadata was validated 😀")
-                console.print(f"\n [bold green]. {article_publication=} 😀")
-                console.print(f"\n [bold green]. {str(article_publication)=} 😀")
-                return article_publication
-            else:
-                console.print("\n [bold red]. The metadata returned by CrossRef is invalid")
-                return None
-
-        else:
-            logger.warning(f"No DOI found in the file: {pdf_file}")
+            # Define pages to check: first (0), second (1), and last (-1)
+            pages_to_check = [0, 1, -1]
+            pages_checked = set()
+            
+            for page_index in pages_to_check:
+                # Skip if page doesn't exist
+                if page_index >= len(pdf_document) or page_index < -len(pdf_document):
+                    continue
+                    
+                # Convert negative index to positive
+                if page_index < 0:
+                    actual_page_index = len(pdf_document) + page_index
+                else:
+                    actual_page_index = page_index
+                    
+                # Skip if we've already checked this page
+                if actual_page_index in pages_checked:
+                    continue
+                    
+                pages_checked.add(actual_page_index)
+                
+                page = pdf_document[actual_page_index]
+                text = page.get_text("text")
+                
+                console.print(f"  Checking page {actual_page_index + 1} of {len(pdf_document)}")
+                
+                # Define the DOI pattern
+                doi_pattern = r'10[.][\d.]{1,15}\/[-._;:()\/A-Za-z0-9<>]+[A-Za-z0-9]'
+                
+                # Search for DOI in the text
+                doi_match = re.search(doi_pattern, text)
+                if doi_match:
+                    doi = doi_match.group()
+                    logger.info(f"Extracting DOI: {doi} from file: {pdf_file} (found on page {actual_page_index + 1})")
+                    
+                    meta_data_fetched_via_CrossRef_API: Union[Publication, None] = fetch_metadata_by_doi(doi)
+                    
+                    if meta_data_fetched_via_CrossRef_API:
+                        console.print("\n[bold green]CrossRef API returned metadata 😀")
+                        console.print("\n[bold blue]Time to validate the returned metadata")
+                        
+                        article_publication: Publication = validate_crossref_returned_meta_data(meta_data_fetched_via_CrossRef_API)
+                        
+                        if article_publication:
+                            console.print(f"\n[bold green]CrossRef API returned metadata was validated 😀")
+                            console.print(f"\n[bold green]{article_publication=} 😀")
+                            console.print(f"\n[bold green]{str(article_publication)=} 😀")
+                            return article_publication
+                        else:
+                            console.print("\n[bold red]The metadata returned by CrossRef is invalid")
+                            return None
+                    else:
+                        console.print(f"\n[bold yellow]No metadata found for DOI: {doi}")
+                        # Continue checking other pages
+                        continue
+            
+            # If we get here, no DOI was found on any of the checked pages
+            logger.warning(f"No DOI found in the file: {pdf_file} (checked pages: {sorted([p+1 for p in pages_checked])})")
+            console.print(f"\n[bold yellow]No DOI found in the PDF (checked pages: {sorted([p+1 for p in pages_checked])})")
             return None
-
+            
     except FileNotFoundError:
         logger.error(f"PDF file not found: {pdf_file}")
+        console.print(f"\n[bold red]PDF file not found: {pdf_file}")
     except PermissionError:
         logger.error(f"Permissions error: Cannot open the PDF file: {pdf_file}")
+        console.print(f"\n[bold red]Permissions error: Cannot open the PDF file: {pdf_file}")
     except re.error as e:
         logger.error(f"Error with DOI regex pattern: {e}")
-    #except Exception as e:
-    #    logger.error(f"Unexpected error extracting metadata from PDF: {e}", exc_info=True)
+        console.print(f"\n[bold red]Error with DOI regex pattern: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error extracting metadata from PDF: {e}", exc_info=True)
+        console.print(f"\n[bold red]Unexpected error: {e}")
 
     return None
-
 
 # Using Crossref API to match the extracted DOI
 def fetch_metadata_by_doi(doi: str) -> Optional[Dict[str, Any]]:

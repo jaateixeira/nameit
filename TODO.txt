@@ -1,3 +1,7 @@
+Finds dois first page, then 2nd, then last before failing
+
+
+
 Debug with -v -vv all the way
 
 
