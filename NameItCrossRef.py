@@ -19,6 +19,11 @@ import requests_cache
 
 from rich.table import Table
 
+from rich.traceback import install
+# Install rich traceback handler
+install(show_locals=True)  # Shows local variables in traceback
+
+
 from utils.unified_console import console
 from utils.unified_logger import logger
 
@@ -39,8 +44,7 @@ from models.data_models import Publication
 # Enable caching with 1-year expiration
 requests_cache.install_cache('crossref_cache', expire_after=31536000)  #
 
-
-def format_author_names(authors: list) -> str:
+def format_author_names(authors: list, debug: bool = False) -> str:
     """
     Formats a list of author names, typically obtained from the CrossRef API, into a string representation.
 
@@ -55,9 +59,13 @@ def format_author_names(authors: list) -> str:
     Parameters:
     authors (list of dict): A list of author dictionaries obtained from the CrossRef API. Each dictionary
                            should contain at least a 'family' key with the author's family name.
+    debug (bool): If True, prints detailed debug information.
 
     Returns:
     str: A formatted string representing the authors' names.
+
+    Raises:
+    ValueError: If authors list is empty or if any author dictionary is missing the 'family' key.
 
     Examples:
     >>> format_author_names([{'family': 'Smith'}])
@@ -67,18 +75,107 @@ def format_author_names(authors: list) -> str:
     >>> format_author_names([{'family': 'Smith'}, {'family': 'Johnson'}, {'family': 'Williams'}])
     'Smith et al.'
     """
-    logger.info(f"Formatting authors {authors}")
-    if len(authors) == 1:
-        return authors[0]['family']
-    elif len(authors) == 2:
-        return f"{authors[0]['family']} and {authors[1]['family']}"
-    else:
-        return f"{authors[0]['family']} et al."
+    try:
+        if debug:
+            logger.info(f"Formatting authors {authors}")
+        
+        # Validate input
+        if not authors:
+            raise ValueError("Authors list cannot be empty")
+        
+        if not isinstance(authors, list):
+            raise ValueError(f"Authors must be a list, got {type(authors).__name__}")
+        
+        # Check all authors have 'family' key before processing
+        for i, author in enumerate(authors):
+            if not isinstance(author, dict):
+                raise ValueError(f"Author at index {i} must be a dictionary, got {type(author).__name__}")
+            
+            if 'family' not in author:
+                # Try to find alternative keys
+                alternative_keys = ['surname', 'last_name', 'lastName', 'name']
+                for key in alternative_keys:
+                    if key in author:
+                        author['family'] = author[key]
+                        if debug:
+                            logger.warning(f"Using alternative key '{key}' for author at index {i}")
+                        break
+                else:
+                    # No alternative key found
+                    raise KeyError(
+                        f"Author dictionary at index {i} is missing 'family' key. "
+                        f"Available keys: {list(author.keys())}. "
+                        f"Author data: {author}"
+                    )
+            
+            # Additional validation
+            if not author['family'] or str(author['family']).strip() == '':
+                logger.warning(f"Author at index {i} has empty or whitespace-only family name")
+        
+        # Format based on number of authors
+        if len(authors) == 1:
+            return authors[0]['family']
+        elif len(authors) == 2:
+            return f"{authors[0]['family']} and {authors[1]['family']}"
+        else:
+            return f"{authors[0]['family']} et al."
+    
+    except (KeyError, ValueError) as e:
+        # Create a detailed error message
+        error_context = {
+            "function": "format_author_names",
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "authors_received": str(authors),
+            "authors_type": type(authors).__name__,
+            "authors_length": len(authors) if isinstance(authors, list) else "N/A",
+            "debug_mode": debug
+        }
+        
+        # Log the error with context
+        error_msg = (
+            f"Failed to format author names:\n"
+            f"  Error: {type(e).__name__}: {str(e)}\n"
+            f"  Input type: {type(authors).__name__}\n"
+            f"  Input length: {len(authors) if isinstance(authors, list) else 'N/A'}\n"
+            f"  First few items: {authors[:3] if isinstance(authors, list) else authors}"
+        )
+        
+        logger.error(error_msg)
+        
+        if debug:
+            # Print detailed debugging information
+            print("\n" + "="*60)
+            print("DEBUG - Author Formatting Error")
+            print("="*60)
+            print(f"Error: {type(e).__name__}: {e}")
+            print(f"\nAuthors data received:")
+            print(f"  Type: {type(authors)}")
+            print(f"  Length: {len(authors) if isinstance(authors, list) else 'N/A'}")
+            print(f"  Content: {authors}")
+            
+            if isinstance(authors, list) and authors:
+                print(f"\nDetailed author inspection:")
+                for i, author in enumerate(authors[:5]):  # Show first 5
+                    print(f"  Author {i}:")
+                    print(f"    Type: {type(author)}")
+                    if isinstance(author, dict):
+                        print(f"    Keys: {list(author.keys())}")
+                        print(f"    Values: {author}")
+                    else:
+                        print(f"    Value: {author}")
+            print("="*60 + "\n")
+        
+        # Re-raise with more informative error
+        raise ValueError(f"Failed to format author names: {e}. "
+                        f"Input: {authors[:3] if isinstance(authors, list) and len(authors) > 3 else authors}") from e
+    
 
 
-def validate_crossref_returned_meta_data(meta_data: Optional[Dict]) -> Publication:
+def validate_crossref_returned_meta_data(meta_data: Optional[Dict], debug : bool = False ) -> Publication:
     console.print("\n [bold green]. Validating the data returned by the CrossRef API")
     logger.info("Validating the data returned by CrossRef API ")
+
     #logger.info(meta_data)
 
     # Extracting relevant information
@@ -344,7 +441,7 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
         console.print(f"\n[bold red]Error with DOI regex pattern: {e}")
     except Exception as e:
         logger.error(f"Unexpected error extracting metadata from PDF: {e}", exc_info=True)
-        console.print(f"\n[bold red]Unexpected error: {e}")
+        console.print_exception(show_locals=True, extra_lines=3)
 
     return None
 
