@@ -104,24 +104,24 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def is_there_internet_access():
-    headers = {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-    }
-
+def is_there_internet_access() -> bool:
+    """Return True if Crossref is reachable. Uses a plain Session to bypass
+    the requests_cache instance installed by NameItCrossRef at import time."""
     try:
-        response = requests.get("http://www.google.com/", headers=headers,timeout=5)
-        response.raise_for_status()  # Raises an HTTPError for bad responses (4XX, 5XX)
-        console.print(f"\t Online access to internet [green]checked[/green] ")
+        with requests.Session() as s:
+            response = s.get("https://api.crossref.org/", timeout=5)
+        response.raise_for_status()
+        console.print("\t Online access to internet [green]checked[/green]")
         return True
     except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as e:
-        console.print(f"\t Online access to internet [green]failed[/green] ")
+        console.print("\t Online access to internet [red]failed[/red]")
         console.print(e)
         return False
+    
 
 
+
+    
 # Limiting filenames to valid characters
 def remove_invalid_characters(text):
     valid_characters = "-_.() %s%s" % (string.ascii_letters, string.digits)
