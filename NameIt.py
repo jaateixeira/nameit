@@ -132,13 +132,36 @@ def remove_invalid_characters(text):
     return cleaned_text
 
 
-# Saving required information from the metadata to the file and removing invalid characters
-def rename_pdf_file(pdf_file: os.path, new_file_name: str) -> None:
-    logger.info(f"renaming pdf file  {pdf_file} to {new_file_name}")
+def unique_target_path(target: Path) -> Path:
+    """Return target, or 'name (1).pdf', 'name (2).pdf', ... if it already exists."""
+    if not target.exists():
+        return target
+    counter = 1
+    while True:
+        candidate = target.with_name(f"{target.stem} ({counter}){target.suffix}")
+        if not candidate.exists():
+            return candidate
+        counter += 1
 
-    os.rename(pdf_file, os.path.join(os.path.dirname(pdf_file), new_file_name))
 
-    return None
+def rename_pdf_file(pdf_file: PathLike, new_file_name: str) -> Path:
+    """Rename pdf_file inside its own directory and return the new path.
+
+    Path separators in new_file_name are neutralised, and an existing file is
+    never overwritten (a numeric suffix is added instead).
+    """
+    source = normalize_path(pdf_file)
+    safe_name = new_file_name.replace(os.sep, "_").replace("/", "_")
+    if not safe_name.lower().endswith(".pdf"):
+        safe_name += ".pdf"
+    target = source.with_name(safe_name)
+    if target == source:
+        logger.info(f"{source} already follows the NameIt standard")
+        return source
+    target = unique_target_path(target)
+    logger.info(f"renaming pdf file {source} to {target.name}")
+    source.rename(target)
+    return target
 
 
 def process_folder_or_file_dry_run(
@@ -160,7 +183,7 @@ def process_folder_or_file_dry_run(
         Dictionary mapping original paths to their proposed new paths
     """
 
-    console.print(f"[blue]Listing  {fs_path} [/blue] with {args.recursive=}")
+    console.print(f"[blue]Listing  {fs_path} [/blue] with {nameit_args.recursive=}")
 
     file_count: int = 0
     pdf_to_be_renamed: int = 0
@@ -187,7 +210,8 @@ def process_folder_or_file_dry_run(
             for item in directory.iterdir():
                 if item.is_dir():
                     console.print(f"{indent}[blue][DIR][/blue] {item.name}")
-                    if args.recursive:
+                    dir_count += 1
+                    if nameit_args.recursive:
                         list_items(item, depth + 1)
                 elif item.is_file():
                     console.print(f"{indent}[green][FILE][/green] {item.name}")
@@ -225,86 +249,69 @@ def process_folder_or_file_dry_run(
 
     return None
 
-def process_folder_or_file(nameit_path: os.PathLike, cli_args: argparse.Namespace) -> None:
-    """
-    Process either a folder or a PDF file based on the given path and arguments.
+def iter_pdf_files(root: Path, recursive: bool):
+    """Yield the PDF files at root: root itself if it is a file, else its PDFs.
 
-    For directories, it processes all DPF file within. For PDF files, it extracts metadata
-    and optionally renames the file based on the metadata. The specific metadata
-    extraction method is determined by the provided arguments.
+    Subdirectories are only entered when recursive is True.
+    """
+    if root.is_file():
+        yield root
+        return
+    entries = root.rglob("*") if recursive else root.iterdir()
+    for item in sorted(entries):
+        if item.is_file() and item.suffix.lower() == ".pdf":
+            yield item
+
+
+def process_single_pdf(pdf_file_path: Path, cli_args: argparse.Namespace) -> None:
+    """Validate one PDF, extract its metadata and rename it."""
+    logger.info(f"validating path {pdf_file_path}")
+    if not is_valid_path(pdf_file_path):
+        return None
+
+    publication = extract_publication_metadata_from_crossref_using_doi_in_pdf(str(pdf_file_path))
+    if publication:
+        new_path = rename_pdf_file(pdf_file_path, str(publication))
+        console.print(f"[green]File renamed to: {new_path.name}[/green]")
+    else:
+        console.print(f"[yellow]DOI not found in {pdf_file_path}.[/yellow]")
+
+
+def process_folder_or_file(nameit_path: PathLike, cli_args: argparse.Namespace) -> None:
+    """
+    Process a PDF file, or the PDF files of a folder (and its subfolders with -r).
 
     Args:
-        nameit_path (os.path): The path to either a directory or a PDF file to be processed.
-        cli_args (Any): Command line arguments object containing processing options:
-            - use_pdf_metadata (bool): Whether to use PDF embedded metadata
-            - use_crossref (bool): Whether to use Crossref API
-            - use_layoutlmv3 (bool): Whether to use LayoutLMv3 model
-
-    Returns:
-        None: This function performs operations but doesn't return a value.
+        nameit_path: Path to a directory or a PDF file.
+        cli_args: Parsed command line arguments (method flags, recursive, ...).
 
     Raises:
-        SystemExit: If an invalid processing method is specified or if the input path is invalid.
-        @param nameit_path:
-        @param cli_args:
-
+        SystemExit: If no metadata extraction method was selected.
+        InvalidNameItPath: If a single given file is not a valid PDF.
     """
+    root = normalize_path(nameit_path)
+    logger.info(f"Processing {root}")
 
-    if args.verbose:
-        print(logger.info(f"Processing {nameit_path}"))
+    # Verify at least one processing method is specified (once, before any work)
+    if not (cli_args.use_pdf_metadata or cli_args.use_crossref or cli_args.use_layoutlmv3):
+        console.print("[red]Method not known.[/red]")
+        console.print("[blue]Are you sure you don't want to use pdf metadata? "
+                      "or the Crossref API? Or the LayoutLMv3 model?[/blue]")
+        sys.exit(1)
 
-    # Test if the path is a directory
-    if os.path.isdir(nameit_path):
-        for root, dirs, files in os.walk(nameit_path):
-            # Goes after sub_directories  TODO Add -r to options
-            for dir_name in dirs:
-                process_folder_or_file(dir_name, cli_args)
+    if root.is_file():
+        if not is_pdf_file(root):
+            console.print(f"[red]{root} is not a pdf file.[/red]")
+            return None
+        process_single_pdf(root, cli_args)
+        return None
 
-            # Goes after files
-            for filename in files:
-                process_folder_or_file(root + filename, cli_args)
-
-    # Handle if the path is a single pdf file
-    elif os.path.isfile(nameit_path) and is_pdf_file(nameit_path):
+    for pdf_file in iter_pdf_files(root, cli_args.recursive):
         try:
-            logger.info(f"validating path {nameit_path}")
-            if is_valid_path(nameit_path):
-                validated_path = nameit_path
-                logger.info(f"path {validated_path} is validated without raising exceptions")
-            else:
-                return None
+            process_single_pdf(pdf_file, cli_args)
         except InvalidNameItPath as e:
-            error = ErrorModel.capture(e)
-            error.display_user_friendly()
-            console.print(f"[red] Invalid file path {nameit_path}[/red]")
-            console.print(f"[blue] Caught exception:{e}")
-            raise InvalidNameItPath(
-                path=str(nameit_path),
-                reason="Invalid path",
-                suggestion="Check file extension, or provide a different file or directory."
-            )
-        except argparse.ArgumentTypeError as e:
-            console.print(f"[red] Argument file path {nameit_path}[/red]")
-            console.print(f"[blue] Caught exception:{e}")
-
-        # Verify at least one processing method is specified
-        if cli_args.use_pdf_metadata or cli_args.use_crossref or cli_args.use_layoutlmv3:
-            pdf_file_path = nameit_path
-            extracted_publication_from_crossref_api = (
-                extract_publication_metadata_from_crossref_using_doi_in_pdf(str(pdf_file_path)))
-        else:
-            console.print("[red]Method not known.[/red]")
-            console.print("[blue]Are you sure you don't want to use pdf metadata? "
-                          "or the Crossref API? Or the LayoutLMv3 model?[/blue]")
-            sys.exit()
-
-        # Process metadata if found
-        if extracted_publication_from_crossref_api:
-            new_file_name = rename_pdf_file(pdf_file_path, str(extracted_publication_from_crossref_api))
-            if new_file_name:
-                console.print(f"[green]File renamed to: {new_file_name}[/green]")
-        else:
-            console.print(f"[yellow]DOI not found in {pdf_file_path}.[/yellow]")
+            # One bad file must not abort a whole batch
+            console.print(f"[yellow]Skipping {pdf_file}: {e.reason}[/yellow]")
 
 def list_files_and_directories(fs_path: PathLike) -> None:
     """
@@ -371,11 +378,9 @@ def execute_main_logic() -> None:
         console.print(f"\n[blue]{args=}[/blue]")
 
     if args.dry_run:
-        if args.use_crossref or args.use_layoutlmv3 or args.use_pdf_metadata:
-            console.print(f"[ERROR] Dry run only inspect but takes not given action[/red]")
-            console.print(f"[ERROR] No method (i.e., crossred, layoutlvm3 or pdf_metada) should be given[/red]")
-            sys.exit()
         process_folder_or_file_dry_run(path, args)
+        return None
+
     process_folder_or_file(path, args)
 
 
