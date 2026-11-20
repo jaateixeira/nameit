@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
+from models.exceptions import InvalidNameItPath
 from utils.validators import is_valid_path, valid_path
 
 print("\033[31mRED\033[0m \033[32mGREEN\033[0m")  # Should show colored words
@@ -125,12 +126,12 @@ class TestPathValidator(unittest.TestCase):
 
     def test_invalid_pdf_header(self):
         """Reject .pdf file with invalid header."""
-        with self.assertRaises(argparse.ArgumentTypeError):
+        with self.assertRaises(InvalidNameItPath):
             is_valid_path(self.invalid_pdf)
 
     def test_empty_dir(self):
         """Reject empty directory."""
-        with self.assertRaises(argparse.ArgumentTypeError):
+        with self.assertRaises(InvalidNameItPath):
             valid_path(self.empty_dir)
 
     def test_non_empty_dir(self):
@@ -140,12 +141,12 @@ class TestPathValidator(unittest.TestCase):
     def test_nonexistent_path(self):
         """Reject nonexistent path."""
         fake_path = os.path.join(self.test_data_dir, "ghost.pdf")
-        with self.assertRaises(argparse.ArgumentTypeError):
+        with self.assertRaises(InvalidNameItPath):
             valid_path(fake_path)
 
     def test_wildcards(self):
         """Reject paths with wildcards."""
-        with self.assertRaises(argparse.ArgumentTypeError):
+        with self.assertRaises(InvalidNameItPath):
             valid_path(os.path.join(self.test_data_dir, "*.pdf"))
 
     def test_pdf_with_missing_dash_in_header(self):
@@ -153,7 +154,7 @@ class TestPathValidator(unittest.TestCase):
         path = os.path.join(self.test_data_dir, "broken_header.pdf")
         with open(path, "wb") as f:
             f.write(b"%PDFInvalid")  # Missing '-'
-        with self.assertRaises(argparse.ArgumentTypeError):
+        with self.assertRaises(InvalidNameItPath):
             valid_path(path)
 
     def test_pdf_with_leading_whitespace(self):
@@ -168,7 +169,7 @@ class TestPathValidator(unittest.TestCase):
         path = os.path.join(self.test_data_dir, "late_header.pdf")
         with open(path, "wb") as f:
             f.write(b"Garbage%PDF-")  # Header not at start
-        with self.assertRaises(argparse.ArgumentTypeError):
+        with self.assertRaises(InvalidNameItPath):
             is_valid_path(path)
 
     def test_symlink_to_valid_pdf(self):
@@ -187,10 +188,14 @@ class TestPathValidator(unittest.TestCase):
             f.write(b"NOT_A_PDF")
 
         symlink_path = os.path.join(self.test_data_dir, "invalid_link.pdf")
+        if os.path.lexists(symlink_path):
+            os.remove(symlink_path)
+        os.symlink(invalid_path, symlink_path)
 
-        with self.assertRaises(argparse.ArgumentTypeError):
+        with self.assertRaises(InvalidNameItPath):
             is_valid_path(symlink_path)
 
+    @unittest.skipIf(hasattr(os, 'geteuid') and os.geteuid() == 0, 'root ignores file permissions')
     def test_file_permissions(self):
         """Test how valid_path handles a file with no permissions."""
         """ Should reject PDFs with no read permissions."""
@@ -218,7 +223,7 @@ class TestPathValidator(unittest.TestCase):
         """Reject empty .pdf file (0 bytes)."""
         path = os.path.join(self.test_data_dir, "empty.pdf")
         open(path, "wb").close()  # Create 0-byte file
-        with self.assertRaises(argparse.ArgumentTypeError):
+        with self.assertRaises(InvalidNameItPath):
             is_valid_path(path)
 
     def test_corrupted_pdf(self):
@@ -227,7 +232,7 @@ class TestPathValidator(unittest.TestCase):
         with open(path, "wb") as f:
             f.write(b"%PDF-")  # Valid header
             f.write(os.urandom(100))  # Random garbage
-        with self.assertRaises(argparse.ArgumentTypeError):
+        with self.assertRaises(InvalidNameItPath):
             is_valid_path(path)  # Fails if deeper validation is added
 
     def test_pdf_with_version_header(self):
@@ -248,7 +253,7 @@ class TestPathValidator(unittest.TestCase):
         if condition_to_skip_test:
             print(f"Skipping assertion due to condition being True -> condition_to_skip_test={condition_to_skip_test}")
         else:
-            with self.assertRaises(argparse.ArgumentTypeError):
+            with self.assertRaises(InvalidNameItPath):
                 is_valid_path(path)
 
     def test_zip_renamed_to_pdf(self):
@@ -256,7 +261,7 @@ class TestPathValidator(unittest.TestCase):
         path = os.path.join(self.test_data_dir, "fake.pdf")
         with open(path, "wb") as f:
             f.write(b"PK\x03\x04")  # ZIP header
-        with self.assertRaises(argparse.ArgumentTypeError):
+        with self.assertRaises(InvalidNameItPath):
             valid_path(path)
 
     def test_argparse_integration(self):
