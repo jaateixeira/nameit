@@ -11,12 +11,12 @@ from typing import Optional, Dict, Union, Any
 
 from nameparser import HumanName
 
-from models.types import PathLike
-from utils.unified_console import console
-from utils.unified_logger import logger
+from nameit.models.types import PathLike
+from nameit.utils.unified_console import console
+from nameit.utils.unified_logger import logger
 
 
-from models.exceptions import InvalidCrossrefDataError, NameItError, InvalidNameItPath
+from nameit.models.exceptions import InvalidCrossrefDataError, NameItError, InvalidNameItPath
 
 
 def validate_first_name(name: str) -> bool:

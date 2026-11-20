@@ -7,8 +7,8 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from models.exceptions import InvalidNameItPath
-from utils.validators import is_valid_path, valid_path
+from nameit.models.exceptions import InvalidNameItPath
+from nameit.utils.validators import is_valid_path, valid_path
 
 print("\033[31mRED\033[0m \033[32mGREEN\033[0m")  # Should show colored words
 

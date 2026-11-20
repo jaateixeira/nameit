@@ -6,8 +6,8 @@ from datetime import datetime
 
 import traceback
 
-from utils.unified_logger import logger
-from utils.unified_console import console
+from nameit.utils.unified_logger import logger
+from nameit.utils.unified_console import console
 
 
 class ErrorSeverity(str, Enum):

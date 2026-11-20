@@ -7,25 +7,40 @@ from loguru import logger
 from rich import print as rprint
 from rich.logging import RichHandler
 
-from utils.unified_console import console
+from nameit.utils.unified_console import console
+
+from nameit.utils.paths import log_dir
 
 # Remove the default logger
 logger.remove()
 
-# Add RichHandler to the loguru logger for console output
-logger.add(
-    RichHandler(console=console, show_time=True, show_path=True, rich_tracebacks=True),
-    format="{message}",
-    level="DEBUG",
-)
+_console_handler_id = None
 
-# Add a file handler for logging to a file
+
+def set_console_level(level: str = "WARNING") -> None:
+    """(Re)attach the console handler at `level`; use "CRITICAL+1"-style silence via level="NONE"."""
+    global _console_handler_id
+    if _console_handler_id is not None:
+        logger.remove(_console_handler_id)
+        _console_handler_id = None
+    if level != "NONE":
+        _console_handler_id = logger.add(
+            RichHandler(console=console, show_time=True, show_path=True, rich_tracebacks=True),
+            format="{message}",
+            level=level,
+        )
+
+
+# Quiet by default; the CLI raises this with -v (INFO) / -vv (DEBUG) or silences it with -s.
+set_console_level("WARNING")
+
+# Full debug log goes to the per-user log directory, not the current working directory.
 logger.add(
-    "app.log",  # Log file name
-    format="{time} | {level} | {message}",  # Customize the log format
-    level="DEBUG",  # Set the desired logging level
-    rotation="10 MB",  # Rotate log file when it reaches 10 MB
-    compression="zip",  # Compress rotated log files
+    str(log_dir() / "nameit.log"),
+    format="{time} | {level} | {message}",
+    level="DEBUG",
+    rotation="10 MB",
+    compression="zip",
 )
 
 

@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
 from nameparser import HumanName
-from utils.validators import (
+from nameit.utils.validators import (
     validate_first_name,
     validate_last_name,
     validate_suffix,
@@ -81,12 +81,18 @@ class Publication:
         return self.publisher  # fallback
 
     def _format_authors(self) -> str:
-        # Normalize names and split on common delimiters
-        authors = re.split(r'\s*(?:and|&|,)\s*', self.authors)
-        first = authors[0].strip()
-        surname_match = re.search(r'([A-ZÅÄÖÁÉÍÓÚÑ][a-zà-ž]*)$', first)
-        surname = surname_match.group(1) if surname_match else first
-        return f"{surname} et al." if len(authors) > 2 else surname
+        """NameIt standard: one author -> 'Smith'; two -> 'Smith and Jones'; more -> 'Smith et al.'"""
+        authors = [a.strip() for a in re.split(r'\s*(?:\band\b|&|,)\s*', self.authors) if a.strip()]
+        if not authors:
+            return self.authors.strip()
+
+        def surname(name: str) -> str:
+            match = re.search(r'([A-ZÅÄÖÁÉÍÓÚÑ][a-zà-ž]*)$', name)
+            return match.group(1) if match else name
+
+        if len(authors) > 2:
+            return f"{surname(authors[0])} et al."
+        return " and ".join(surname(a) for a in authors)
 
     def __str__(self) -> str:
         author_str = self._format_authors()

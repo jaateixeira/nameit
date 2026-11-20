@@ -3,7 +3,7 @@ import unittest
 from rich.text import Text
 from rich.console import Console
 from rich.table import Table
-from utils.validators import validate_author_family_name  # If renamed to NameIt.py
+from nameit.utils.validators import validate_author_family_name  # If renamed to NameIt.py
 
 
 class ColorfulTestResult(unittest.TextTestResult):
