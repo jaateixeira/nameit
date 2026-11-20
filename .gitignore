@@ -7,3 +7,7 @@ app.log
 unit-tests/unit_tests_data/
 unit-tests/test-reports/
 crossref_cache.sqlite*
+build/
+dist/
+*.egg-info/
+.nameit-undo-*.json
