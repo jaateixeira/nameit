@@ -1,5 +1,5 @@
 bibtexparser>=1.4,<2.0
-nameparser
+nameparser>=1.1,<2.0   # 3.x removed HumanName
 loguru
 rich
 unidecode
@@ -7,3 +7,4 @@ habanero>=2,<3
 requests>=2.32,<3
 requests-cache
 python-magic
+pymupdf

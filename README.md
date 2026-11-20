@@ -20,15 +20,9 @@ It can extract structured data from PDFs using: (1) pdf meta-data, (2) the Cross
 ![LayoutLM](https://img.shields.io/badge/LayoutLM-v3-FF6F00?style=for-the-badge&logo=microsoft&logoColor=white)
 ![PDF%20AI](https://img.shields.io/badge/PDF_AI-Structured_Data-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
-![Transformers](https://img.shields.io/badge/🤗-Transformers-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)
-![LayoutLM](https://img.shields.io/badge/LayoutLM-v3-FF6F00?style=for-the-badge&logo=microsoft&logoColor=white)
-![PDF%20AI](https://img.shields.io/badge/PDF_AI-Structured_Data-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
 
 
 Extract structured data from PDFs using state-of-the-art layout understanding models.
-=======
 
 
 ## Build Status
@@ -89,11 +83,11 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher would become "
 
 # Requirements # 
 
-* Python 3 -  Tested on > 3.10
-* Habanero 
+* Python 3 -  Tested on 3.10 - 3.13
+* Habanero (Crossref API)
 * PyMuPDF
-* Transformers
-* PyTorch
+* libmagic (system library; `apt install libmagic1` or `brew install libmagic`)
+* Transformers and PyTorch - only for the optional LayoutLMv3 mode (`pip install -r requirements-ai.txt`)
 
 We suport the ext3, ext4, xfs, zfs, NTFS, APFS, HFS+ and xFAT filesystems. Support for FAT32 pending. 
 Should work in most modern computers running Linux, macOS and Windows. Problems could arise with the use of old  USB flash drives  and SDcard disks in old Linux Kernels. 
@@ -110,7 +104,7 @@ NameIt is pure python3 code.  It depends on several online public packages, publ
 `$ pip3 install PyMuPDF` <- required to process the first page of a pdf article. 
 
 ## HuggingFace Transformers, PyTorch  ##
-`$ pip3 install transformers torch ` <- required to use the LayoutLM AI/ML model 
+`$ pip3 install -r requirements-ai.txt` <- optional, only to use the LayoutLM AI/ML model (experimental, not yet functional) 
 
 # How to use it 
 
