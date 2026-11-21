@@ -73,6 +73,8 @@ class PDFEncryptedError(PDFError):
 class InvalidCrossrefDataError(Exception):
     """Raised when essential Crossref metadata fields are missing or invalid."""
     def __init__(self, missing_fields):
+        if isinstance(missing_fields, str):  # a bare string used to be joined character by character
+            missing_fields = [missing_fields]
         message = f"Missing or invalid fields in Crossref metadata: {', '.join(missing_fields)}"
         super().__init__(message)
         self.missing_fields = missing_fields

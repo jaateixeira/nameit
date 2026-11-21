@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from typing import Optional, Sequence, Union, Dict
 
+from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from nameit.api import (
@@ -23,7 +24,8 @@ from nameit.api import (
 )
 from nameit.models.exceptions import InvalidNameItPath
 from nameit.models.types import PathLike
-from nameit.utils.unified_logger import logger, set_console_level
+from nameit.utils.unified_logger import logger
+from nameit.utils.verbosity import NORMAL, SILENT, configure_output, get_verbosity, vprint, vvprint
 from nameit.utils.unified_console import console
 from nameit.utils.validators import is_valid_path
 
@@ -114,11 +116,12 @@ def is_there_internet_access() -> bool:
         with requests.Session() as s:
             response = s.get("https://api.crossref.org/", timeout=5)
         response.raise_for_status()
-        console.print("\t Online access to internet [green]checked[/green]")
+        vprint("Crossref is [green]reachable[/green]")
         return True
     except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as e:
-        console.print("\t Online access to internet [red]failed[/red]")
-        console.print(e)
+        logger.warning(f"Crossref not reachable: {e}")
+        vprint("Crossref is [red]not reachable[/red]")
+        vvprint(f"[dim]{e}[/dim]")
         return False
     
 
@@ -149,12 +152,7 @@ def parse_and_validate_arguments(argv: Optional[Sequence[str]] = None) -> argpar
     """Parse the command line, apply defaults and check the chosen methods can work."""
     parsed_args = parse_arguments(argv)
 
-    if parsed_args.silent:
-        set_console_level("NONE")
-    elif parsed_args.very_verbose:
-        set_console_level("DEBUG")
-    elif parsed_args.verbose:
-        set_console_level("INFO")
+    configure_output(parsed_args.verbose, parsed_args.very_verbose, parsed_args.silent)
 
     if parsed_args.undo is None and parsed_args.path is None:
         console.print("[red]A path to a PDF file or folder is required.[/red]")
@@ -189,12 +187,28 @@ def print_plan(plans: Sequence[RenamePlan], dry_run: bool) -> None:
     table.add_column("Via", style="cyan")
     for item in plans:
         if item.status == STATUS_RENAME:
-            table.add_row(item.source.name, f"[green]{item.target.name}[/green]", item.method or "")
+            table.add_row(item.source.name, f"[green]{item.target.name if item.target else ''}[/green]", item.method or "")
         elif item.status == STATUS_UNCHANGED:
             table.add_row(item.source.name, "[dim]already named[/dim]", item.method or "")
         else:
             table.add_row(item.source.name, f"[yellow]skipped: {item.reason}[/yellow]", "")
     console.print(table)
+
+
+def plan_with_progress(path: Path, cli_args: argparse.Namespace) -> list:
+    """plan_rename with a rich progress bar (normal output level only: -v/-vv print their own lines)."""
+    methods = selected_methods(cli_args)
+    if get_verbosity() != NORMAL:
+        return plan_rename(path, methods, cli_args.recursive)
+
+    with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), BarColumn(),
+                  MofNCompleteColumn(), console=console, transient=True) as bar:
+        task = bar.add_task("Reading PDFs", total=None)
+
+        def on_progress(pdf: Path, index: int, total: int) -> None:
+            bar.update(task, total=total, completed=index, description=f"[cyan]{pdf.name[:60]}[/cyan]")
+
+        return plan_rename(path, methods, cli_args.recursive, progress=on_progress)
 
 
 def execute_main_logic(cli_args: argparse.Namespace) -> int:
@@ -204,25 +218,26 @@ def execute_main_logic(cli_args: argparse.Namespace) -> int:
         return 0
 
     path: Path = normalize_path(cli_args.path)
-    if cli_args.verbose or cli_args.very_verbose:
-        logger.info(f"Processing {path} with {selected_methods(cli_args)}")
+    logger.info(f"Processing {path} with {selected_methods(cli_args)}")
 
     try:
-        plans = plan_rename(path, selected_methods(cli_args), cli_args.recursive)
+        plans = plan_with_progress(path, cli_args)
     except InvalidNameItPath as e:
         console.print(f"[red]{e.reason}: {e.path}[/red]")
         return 1
 
-    print_plan(plans, cli_args.dry_run)
+    if get_verbosity() > SILENT:
+        print_plan(plans, cli_args.dry_run)
 
     renamed = [p for p in plans if p.status == STATUS_RENAME]
     skipped = [p for p in plans if p.status == STATUS_SKIPPED]
     if not cli_args.dry_run:
         log_path = apply_plan(plans, log_dir=path if path.is_dir() else path.parent)
-        console.print(f"[green]Renamed {len(renamed)} file(s)[/green], skipped {len(skipped)}.")
-        if log_path:
-            console.print(f"Undo with: nameit --undo '{log_path}'")
-    else:
+        if get_verbosity() > SILENT:
+            console.print(f"[green]Renamed {len(renamed)} file(s)[/green], skipped {len(skipped)}.")
+            if log_path:
+                console.print(f"Undo with: nameit --undo '{log_path}'")
+    elif get_verbosity() > SILENT:
         console.print(f"Would rename {len(renamed)} file(s), skip {len(skipped)}.")
 
     nothing_usable = not renamed and not any(p.status == STATUS_UNCHANGED for p in plans)

@@ -32,7 +32,7 @@ dependencies = [
 
 [project.optional-dependencies]
 ai = ["transformers", "torch", "pillow"]
-dev = ["coverage", "mypy"]
+dev = ["coverage", "mypy", "types-requests"]
 
 [project.urls]
 Homepage = "https://github.com/jaateixeira/nameit"
@@ -45,3 +45,8 @@ version = { attr = "nameit.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["nameit*"]
+
+[tool.mypy]
+ignore_missing_imports = true   # habanero, magic, pymupdf, bibtexparser ship no type stubs
+warn_unused_ignores = true
+files = ["nameit"]

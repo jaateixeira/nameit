@@ -14,6 +14,7 @@ from nameparser import HumanName
 from nameit.models.types import PathLike
 from nameit.utils.unified_console import console
 from nameit.utils.unified_logger import logger
+from nameit.utils.verbosity import vvprint
 
 
 from nameit.models.exceptions import InvalidCrossrefDataError, NameItError, InvalidNameItPath
@@ -21,19 +22,19 @@ from nameit.models.exceptions import InvalidCrossrefDataError, NameItError, Inva
 
 def validate_first_name(name: str) -> bool:
     """Validate that the first name is a non-empty string."""
-    return isinstance(name, str) and name.strip()
+    return isinstance(name, str) and bool(name.strip())
 
 
 def validate_last_name(name: str) -> bool:
     """Validate that the last name is a non-empty string."""
-    return isinstance(name, str) and name.strip()
+    return isinstance(name, str) and bool(name.strip())
 
 
 def validate_suffix(suffix: Optional[str]) -> bool:
     """Validate that the suffix is either None or a non-empty string."""
     if suffix is None:
         return True
-    return isinstance(suffix, str) and suffix.strip()
+    return isinstance(suffix, str) and bool(suffix.strip())
 
 
 def validate_author(author: Dict) -> Dict:
@@ -108,7 +109,7 @@ def validate_authors_list_retrieved_from_cross_ref(meta_data_authors: list) -> b
         bool: True if the list is valid, False otherwise.
     """
     logger.info("Validating authors list in a structure retrieved from CrossRef")
-    console.print(f"{meta_data_authors=}")
+    vvprint(f"{meta_data_authors=}")
 
     if not isinstance(meta_data_authors, list) or not meta_data_authors:
         return False
@@ -176,7 +177,7 @@ def validate_journal(journal: str) -> str:
 
 def validate_publication(publication: Dict) -> Dict:
     """Validate the structure and content of a publication dictionary."""
-    errors = {}
+    errors: Dict[str, Any] = {}
 
     if "authors" not in publication or not isinstance(publication["authors"], list):
         errors["authors"] = "Invalid or missing authors list."
@@ -193,7 +194,7 @@ def validate_publication(publication: Dict) -> Dict:
         errors["title"] = "Invalid or missing title."
 
     if "journal" not in publication or not validate_journal(publication["journal"]):
-        errors["journal"] = "Invalid or missfrom NameIt import normalize_pathing journal."
+        errors["journal"] = "Invalid or missing journal."
 
     return errors
 
@@ -323,7 +324,7 @@ def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> 
 
         file_size_in_kb = os.path.getsize(path_to_rename) / 1024
 
-        console.print(f"File size of path_to_rename={path_to_rename} is {file_size_in_kb} KB")
+        vvprint(f"File size of {path_to_rename} is {file_size_in_kb} KB")
 
         if file_size_in_kb < min_pdf_file_size_in_kb:
             raise InvalidNameItPath(
@@ -426,6 +427,9 @@ def validate_author_family_name(author_family_name: str) -> str:
 
         # Check if the first alphabetic character is uppercase
         first_letter = next((c for c in part if c.isalpha()), None)
+
+        if first_letter is None:  # nothing alphabetic in this part (digits, punctuation): nothing to check
+            continue
 
         if first_letter.islower() and part in lowercase_prefixes:
             continue

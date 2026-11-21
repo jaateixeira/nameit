@@ -56,7 +56,7 @@ class Publication:
             "authors": validate_author_family_name(self.authors),
             "year": validate_year(self.year),
             "title": validate_title(self.title),
-            "publication": validate_journal(self.journal),
+            "publication": validate_journal(self.publication),
             "publisher": validate_publisher(self.publisher)
         }
 
@@ -115,14 +115,13 @@ class Publication:
 
 if __name__ == "__main__":
     # Example usage
-    author1 = Author(full_name="Dr. John von Doe Jr.")
-    author2 = Author(full_name="Jane Smith")
     publication = Publication(
         title="An Example Title",
-        journal="Journal of Examples",
+        publication="Journal of Examples",
         year=2022,
-        authors=[author1, author2],
+        authors="Doe and Smith",
         publisher="Nature")
+    print(publication)
 
     # Validate the publication
     validation_errors = publication.validate

@@ -143,7 +143,7 @@ def console_messages() -> None:
     console.print(locals())
     sleep(3)
     console.print("\n [blue]   console.print(inspect(None, methods=True)) \n")
-    console.print(inspect(None, methods=True))
+    console.print(inspect(None, methods=True))  # type: ignore[func-returns-value]
 
     # Logging with time console.log("Hello, World!")
 

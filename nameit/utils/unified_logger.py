@@ -57,13 +57,13 @@ def log_messages() -> None:
 
     # logging exception with logger.error() with full traceback
     try:
-        1 + "1"
+        1 + "1"  # type: ignore[operator]  # deliberate error for the demo
     except Exception as e:
         logger.error("Error message", stack_info=True, exc_info=True)
 
     # logging just the exception
     try:
-        1 + "1"
+        1 + "1"  # type: ignore[operator]
     except Exception as e:
         logger.exception(e)
 

@@ -3,6 +3,7 @@ import sys
 from nameit.models.exceptions import InvalidCrossrefDataError
 from nameit.utils.unified_logger import console, logger
 
+import os
 import re
 from typing import Optional, Dict, Any, Union
 
@@ -25,6 +26,7 @@ install(show_locals=True)  # Shows local variables in traceback
 
 
 from nameit.utils.paths import cache_dir
+from nameit.utils.verbosity import key_value_table, vprint, vv_exception, vvprint
 from nameit.utils.unified_console import console
 from nameit.utils.unified_logger import logger
 
@@ -173,95 +175,62 @@ def format_author_names(authors: list, debug: bool = False) -> str:
     
 
 
-def validate_crossref_returned_meta_data(meta_data: Optional[Dict], debug : bool = False ) -> Publication:
-    console.print("\n [bold green]. Validating the data returned by the CrossRef API")
+def validate_crossref_returned_meta_data(meta_data: Dict[str, Any], debug: bool = False) -> Publication:
+    """Validate Crossref's answer and turn it into a Publication.
+
+    Raises InvalidCrossrefDataError when essential fields are missing or invalid.
+    """
+    vvprint("[bold green]Validating the data returned by the Crossref API[/bold green]")
     logger.info("Validating the data returned by CrossRef API ")
 
-    #logger.info(meta_data)
+    try:
+        message = meta_data['message']
+        raw_authors = message['author']
+        raw_year = message['issued']['date-parts'][0][0]
+        raw_title = message['title'][0]
+    except (KeyError, IndexError, TypeError) as e:
+        raise InvalidCrossrefDataError([f"author/issued/title ({type(e).__name__}: {e})"]) from e
+    raw_publication = message['container-title'][0] if message.get('container-title') else 'Unknown publication'
+    raw_publisher = message.get('publisher') or 'Unknown publisher'
 
-    # Extracting relevant information
-    raw_authors = meta_data['message']['author']
-    raw_year = meta_data['message']['issued']['date-parts'][0][0]
-    raw_title = meta_data['message']['title'][0]
-    raw_publication = meta_data['message']['container-title'][0] if 'container-title' in meta_data[
-        'message'] else 'Unknown publication'
-    raw_publisher = meta_data['message']['publisher'] if 'publisher' in meta_data['message'] else 'Unknown publisher'
-
-    progress_message: str = (
-        " [bold green]. Picking the relevant data from the metadata returned from CrossRef")
-    console.print(progress_message)
-    logger.info(progress_message)
-
-    console.print(f"{raw_authors=}")
-    console.print(f"{raw_year=}")
-    console.print(f"{raw_title=}")
-    console.print(f"{raw_publication=}")
-    console.print(f"{raw_publisher=}")
-
-    # Creating a table
-    raw_table = Table(title="RAW CrossRef MetaData Information")
-
-    # Adding columns
-    raw_table.add_column("Field", style="cyan", no_wrap=True)
-    raw_table.add_column("Value", style="magenta")
-
-    # Adding rows
-    raw_table.add_row("Authors", str(raw_authors))
-    raw_table.add_row("format_author_names(Authors)", format_author_names(raw_authors))
-    raw_table.add_row("Year", str(raw_year))
-    raw_table.add_row("Title", raw_title)
-    raw_table.add_row("Publication", raw_publication)
-    raw_table.add_row("Publisher", raw_publisher)
-
-    console.print(raw_table)
-
-    progress_message: str = "Validating the metadata returned from CrossRef"
-    console.print(progress_message)
-    logger.info(progress_message)
+    vvprint(key_value_table("RAW Crossref metadata", [
+        ("Authors", str(raw_authors)),
+        ("format_author_names(Authors)", format_author_names(raw_authors)),
+        ("Year", str(raw_year)),
+        ("Title", raw_title),
+        ("Publication", raw_publication),
+        ("Publisher", raw_publisher),
+    ]))
 
     # First validate the authors structure retrieved is acceptable to work with
     if not validate_authors_list_retrieved_from_cross_ref(raw_authors):
-        console.print("not valid code cross ref")
-        console.print("raise exception")
-        sys.exit()
+        raise InvalidCrossrefDataError(["author (every author needs a given and a family name)"])
 
-    # Then validate that the authors family names are valid
-    valid_authors: list = validate_family_names_in_metadata_retrieved_from_cross_ref(raw_authors)
-    valid_year: int = validate_year(raw_year)
-    valid_title: str = validate_title(raw_title)
-    valid_publication: str = validate_journal(raw_publication)
-    valid_publisher: str = validate_publisher_name(raw_publisher)
+    # Then validate the individual fields; validators raise ValueError on bad values
+    try:
+        valid_authors: list = validate_family_names_in_metadata_retrieved_from_cross_ref(raw_authors)
+        valid_year: int = validate_year(raw_year)
+        valid_title: str = validate_title(raw_title)
+        valid_publication: str = validate_journal(raw_publication)
+        valid_publisher: str = validate_publisher_name(raw_publisher)
+    except ValueError as e:
+        raise InvalidCrossrefDataError([str(e)]) from e
 
-    progress_message: str = "Printing the relevant and validated metadata returned from CrossRef"
-    console.print(progress_message)
-    logger.info(progress_message)
+    vvprint(key_value_table("Validated Crossref metadata (fixed as well as possible)", [
+        ("Authors", str(valid_authors)),
+        ("format_author_names(Authors)", format_author_names(valid_authors)),
+        ("Year", str(valid_year) if valid_year else "No year available"),
+        ("Title", valid_title),
+        ("Publication", valid_publication),
+        ("Publisher", valid_publisher),
+    ]))
 
-    # Creating a table
-    valid_table = Table(title="Validated (fixed as good as possible) CrossRef MetaData Information")
-
-    # Adding columns
-    valid_table.add_column("Field", style="cyan", no_wrap=True)
-    valid_table.add_column("Value", style="magenta")
-
-    # Adding rows
-    valid_table.add_row("Authors", str(valid_authors))
-    valid_table.add_row("format_author_names(Authors)", format_author_names(valid_authors))
-    valid_table.add_row("Year", str(valid_year) if valid_year else "No year available")
-    valid_table.add_row("Title", valid_title)
-    valid_table.add_row("Publication", valid_publication)
-    valid_table.add_row("Publisher", valid_publisher)
-
-    console.print(valid_table)
-
-    publication = Publication(
+    return Publication(
         authors=format_author_names(valid_authors),
         year=valid_year,
         title=valid_title,
         publication=valid_publication,
         publisher=valid_publisher)
-
-    return publication
-
 
 
 def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Union[Publication, None]:
@@ -276,7 +245,7 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
         Optional[Dict]: Metadata associated with the DOI if found, otherwise None.
     """
     try:
-        console.print(f"Looking for a DOI in the {pdf_file} pdf file")
+        vprint(f"[bold]{os.path.basename(pdf_file)}[/bold]: looking for a DOI")
         
         with pymupdf.open(pdf_file) as pdf_document:
             # Define pages to check: first (0), second (1), and last (-1)
@@ -303,7 +272,7 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
                 page = pdf_document[actual_page_index]
                 text = page.get_text("text")
                 
-                console.print(f"  Checking page {actual_page_index + 1} of {len(pdf_document)}")
+                vvprint(f"  Checking page {actual_page_index + 1} of {len(pdf_document)}")
                 
                 # Method 1: First find all DOI-like patterns, then filter out JSTOR
                 # Basic DOI pattern (captures most DOIs)
@@ -346,7 +315,7 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
                     for url in urls_in_context:
                         if candidate in url and ('jstor.org' in url.lower() or '/stable/' in url.lower()):
                             is_jstor_url = True
-                            console.print(f"  Skipping JSTOR URL: {url[:80]}...")
+                            vvprint(f"  Skipping JSTOR URL: {url[:80]}...")
                             break
                     
                     if is_jstor_url:
@@ -397,52 +366,49 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
                     if re.match(r'^10\.\d{4,}(?:\.\d+)*/[^\s]+$', candidate, re.IGNORECASE):
                         doi_match = match
                         doi_text = candidate
-                        console.print(f"  Found candidate DOI: {doi_text}")
+                        vprint(f"  Found DOI [cyan]{doi_text}[/cyan] on page {actual_page_index + 1}")
                         break
                 
                 if doi_match and doi_text:
                     doi = doi_text
                     logger.info(f"Extracting DOI: {doi} from file: {pdf_file} (found on page {actual_page_index + 1})")
                     
-                    meta_data_fetched_via_CrossRef_API: Union[Publication, None] = fetch_metadata_by_doi(doi)
+                    meta_data_fetched_via_CrossRef_API: Optional[Dict[str, Any]] = fetch_metadata_by_doi(doi)
                     
                     if meta_data_fetched_via_CrossRef_API:
-                        console.print("\n[bold green]CrossRef API returned metadata 😀")
-                        console.print("\n[bold blue]Time to validate the returned metadata")
-                        
-                        article_publication: Publication = validate_crossref_returned_meta_data(meta_data_fetched_via_CrossRef_API)
-                        
-                        if article_publication:
-                            console.print(f"\n[bold green]CrossRef API returned metadata was validated 😀")
-                            console.print(f"\n[bold green]{article_publication=} 😀")
-                            console.print(f"\n[bold green]{str(article_publication)=} 😀")
-                            return article_publication
-                        else:
-                            console.print("\n[bold red]The metadata returned by CrossRef is invalid")
-                            # Don't return None here, continue checking other pages
-                            continue
+                        vprint("  Crossref returned metadata")
+                        try:
+                            article_publication: Publication = validate_crossref_returned_meta_data(
+                                meta_data_fetched_via_CrossRef_API)
+                        except InvalidCrossrefDataError as e:
+                            logger.warning(f"Crossref metadata for {doi} is not usable: {e}")
+                            vprint(f"  [yellow]Crossref metadata for {doi} is not usable: {e}[/yellow]")
+                            continue  # try the next page
+
+                        vprint(f"  [green]Name: {article_publication}[/green]")
+                        return article_publication
                     else:
-                        console.print(f"\n[bold yellow]No metadata found for DOI: {doi}")
-                        # Continue checking other pages
+                        vprint(f"  [yellow]No Crossref metadata found for DOI {doi}[/yellow]")
                         continue
-            
+
             # If we get here, no DOI was found on any of the checked pages
             logger.warning(f"No DOI found in the file: {pdf_file} (checked pages: {sorted([p+1 for p in pages_checked])})")
-            console.print(f"\n[bold yellow]No DOI found in the PDF (checked pages: {sorted([p+1 for p in pages_checked])})")
+            vprint(f"  [yellow]No DOI found (checked pages {sorted([p+1 for p in pages_checked])})[/yellow]")
             return None
             
     except FileNotFoundError:
         logger.error(f"PDF file not found: {pdf_file}")
-        console.print(f"\n[bold red]PDF file not found: {pdf_file}")
+        vprint(f"[red]PDF file not found: {pdf_file}[/red]")
     except PermissionError:
         logger.error(f"Permissions error: Cannot open the PDF file: {pdf_file}")
-        console.print(f"\n[bold red]Permissions error: Cannot open the PDF file: {pdf_file}")
+        vprint(f"[red]Permissions error: cannot open {pdf_file}[/red]")
     except re.error as e:
         logger.error(f"Error with DOI regex pattern: {e}")
-        console.print(f"\n[bold red]Error with DOI regex pattern: {e}")
+        vprint(f"[red]Error with DOI regex pattern: {e}[/red]")
     except Exception as e:
-        logger.error(f"Unexpected error extracting metadata from PDF: {e}", exc_info=True)
-        console.print_exception(show_locals=True, extra_lines=3)
+        logger.opt(exception=True).error(f"Unexpected error extracting metadata from {pdf_file}: {e}")
+        vprint(f"[red]Unexpected error for {os.path.basename(pdf_file)}: {e}[/red]")
+        vv_exception()
 
     return None
 
