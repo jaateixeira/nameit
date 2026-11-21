@@ -22,6 +22,8 @@ from nameit.api import (
     RenamePlan, apply_plan, iter_pdf_files, plan_rename, rename_pdf_file, undo_renames,
     unique_target_path,
 )
+from nameit.config import ConfigError, load_config, set_active_mailto
+from nameit.models.data_models import validate_name_template
 from nameit.models.exceptions import InvalidNameItPath
 from nameit.models.types import PathLike
 from nameit.utils.unified_logger import logger
@@ -78,6 +80,12 @@ def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 
     parser.add_argument("path", nargs="?", type=Path,
                         help="Path to PDF file or folder containing PDFs")
+    parser.add_argument("--format", dest="name_format", metavar="TEMPLATE",
+                        help='Filename template, e.g. "{authors} ({year}). {title}". Placeholders: '
+                             '{authors} {year} {title} {publication} {publisher} {publisher_full}. '
+                             'Default: "{authors} ({year}). {title}. {publication}. {publisher}"')
+    parser.add_argument("--config", type=Path, metavar="FILE",
+                        help="Read this .nameitrc instead of ~/.nameitrc and the one in the target folder")
     parser.add_argument("--undo", metavar="LOGFILE", type=Path,
                         help="Revert the renames recorded in a .nameit-undo-*.json log and exit")
 
@@ -110,8 +118,7 @@ def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 
 
 def is_there_internet_access() -> bool:
-    """Return True if Crossref is reachable. Uses a plain Session to bypass
-    the requests_cache instance installed by NameItCrossRef at import time."""
+    """Return True if Crossref is reachable."""
     try:
         with requests.Session() as s:
             response = s.get("https://api.crossref.org/", timeout=5)
@@ -145,7 +152,36 @@ def selected_methods(cli_args: argparse.Namespace) -> list:
         methods.append(METHOD_CROSSREF)
     if cli_args.use_pdf_metadata:
         methods.append(METHOD_PDF_METADATA)
+    configured = getattr(cli_args, "methods_order", None)  # order set in .nameitrc
+    if configured:
+        methods = [m for m in configured if m in methods] + [m for m in methods if m not in configured]
     return methods
+
+
+def apply_configuration(parsed_args: argparse.Namespace) -> None:
+    """Merge .nameitrc settings under the command-line flags (flags always win)."""
+    target = normalize_path(parsed_args.path) if parsed_args.path else None
+    try:
+        config = load_config(target, parsed_args.config)
+    except ConfigError as e:
+        console.print(f"[red]Configuration error: {e}[/red]")
+        sys.exit(2)
+
+    if get_verbosity() > SILENT:
+        for warning in config.warnings:
+            console.print(f"[yellow]{warning}[/yellow]")
+    if config.sources:
+        vprint(f"Configuration read from: {', '.join(str(s) for s in config.sources)}")
+
+    if not parsed_args.name_format:
+        parsed_args.name_format = config.name_format
+    if config.recursive:
+        parsed_args.recursive = True
+    if config.methods and not (parsed_args.use_crossref or parsed_args.use_pdf_metadata):
+        parsed_args.use_crossref = METHOD_CROSSREF in config.methods
+        parsed_args.use_pdf_metadata = METHOD_PDF_METADATA in config.methods
+        parsed_args.methods_order = config.methods
+    set_active_mailto(config.crossref_mailto)
 
 
 def parse_and_validate_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
@@ -153,6 +189,15 @@ def parse_and_validate_arguments(argv: Optional[Sequence[str]] = None) -> argpar
     parsed_args = parse_arguments(argv)
 
     configure_output(parsed_args.verbose, parsed_args.very_verbose, parsed_args.silent)
+
+    apply_configuration(parsed_args)
+
+    if parsed_args.name_format:
+        try:
+            validate_name_template(parsed_args.name_format)
+        except ValueError as e:
+            console.print(f"[red]Invalid --format: {e}[/red]")
+            sys.exit(2)
 
     if parsed_args.undo is None and parsed_args.path is None:
         console.print("[red]A path to a PDF file or folder is required.[/red]")
@@ -199,7 +244,7 @@ def plan_with_progress(path: Path, cli_args: argparse.Namespace) -> list:
     """plan_rename with a rich progress bar (normal output level only: -v/-vv print their own lines)."""
     methods = selected_methods(cli_args)
     if get_verbosity() != NORMAL:
-        return plan_rename(path, methods, cli_args.recursive)
+        return plan_rename(path, methods, cli_args.recursive, name_format=cli_args.name_format)
 
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), BarColumn(),
                   MofNCompleteColumn(), console=console, transient=True) as bar:
@@ -208,7 +253,8 @@ def plan_with_progress(path: Path, cli_args: argparse.Namespace) -> list:
         def on_progress(pdf: Path, index: int, total: int) -> None:
             bar.update(task, total=total, completed=index, description=f"[cyan]{pdf.name[:60]}[/cyan]")
 
-        return plan_rename(path, methods, cli_args.recursive, progress=on_progress)
+        return plan_rename(path, methods, cli_args.recursive, progress=on_progress,
+                           name_format=cli_args.name_format)
 
 
 def execute_main_logic(cli_args: argparse.Namespace) -> int:

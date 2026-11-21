@@ -1,6 +1,7 @@
 import os
 import pathlib
 import re
+import string
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
 from nameparser import HumanName
@@ -40,6 +41,35 @@ class Author:
 def _clean_filename_part(text: str) -> str:
     # Replace forbidden characters with safe equivalents
     return re.sub(r'[\\:*?"<>|/]', '', text).strip()
+
+
+DEFAULT_NAME_TEMPLATE = "{authors} ({year}). {title}. {publication}. {publisher}"
+NAME_PLACEHOLDERS = ("authors", "year", "title", "publication", "publisher", "publisher_full")
+
+
+def validate_name_template(template: str) -> None:
+    """Raise ValueError unless `template` only uses plain {placeholders} from NAME_PLACEHOLDERS."""
+    if not isinstance(template, str) or not template.strip():
+        raise ValueError("The filename template must be a non-empty string")
+    try:
+        parsed = list(string.Formatter().parse(template))
+    except ValueError as e:  # unbalanced braces
+        raise ValueError(f"Invalid filename template {template!r}: {e}") from e
+    used = 0
+    for _, field, spec, conversion in parsed:
+        if field is None:
+            continue
+        if field not in NAME_PLACEHOLDERS or spec or conversion:
+            raise ValueError(
+                f"Unknown placeholder {{{field}{'!' + conversion if conversion else ''}"
+                f"{':' + spec if spec else ''}}} in the filename template; "
+                f"use plain placeholders from: {', '.join('{' + n + '}' for n in NAME_PLACEHOLDERS)}")
+        used += 1
+    if not used:
+        raise ValueError("The filename template needs at least one placeholder, "
+                         "otherwise every file would get the same name")
+    if "/" in template or "\\" in template:
+        raise ValueError("The filename template must not contain path separators")
 
 
 @dataclass
@@ -94,23 +124,36 @@ class Publication:
             return f"{surname(authors[0])} et al."
         return " and ".join(surname(a) for a in authors)
 
-    def __str__(self) -> str:
-        author_str = self._format_authors()
-        year_str = f"({self.year})"
-        publication_str = _clean_filename_part(self.publication)
-        publisher_str = self._short_publisher()
+    def render(self, template: str = DEFAULT_NAME_TEMPLATE) -> str:
+        """Filename (with .pdf) for this publication according to `template`.
 
-        title_clean = _clean_filename_part(self.title)
-        base = f"{author_str} {year_str}. {title_clean}. {publication_str}. {publisher_str}.pdf"
+        Over-long names (> 255 characters) are shortened by trimming the title.
+        """
+        validate_name_template(template)
+        fields = {
+            "authors": self._format_authors(),
+            "year": str(self.year),
+            "title": _clean_filename_part(self.title),
+            "publication": _clean_filename_part(self.publication),
+            "publisher": self._short_publisher(),
+            "publisher_full": _clean_filename_part(self.publisher),
+        }
+        suffix = ".pdf"
+        name = template.format(**fields) + suffix
 
-        # Cut title if filename is over 255 characters
         max_len = 255
-        if len(base) > max_len:
-            over = len(base) - max_len
-            cut_title = title_clean[:-over - 3] + "..."  # show it's trimmed
-            base = f"{author_str} {year_str}. {cut_title}. {publication_str}. {publisher_str}.pdf"
+        if len(name) > max_len:
+            over = len(name) - max_len
+            if "{title}" in template:
+                title = fields["title"]
+                fields["title"] = title[:max(len(title) - over - 3, 0)] + "..."  # show it's trimmed
+                name = template.format(**fields) + suffix
+            if len(name) > max_len:  # template without {title}, or still too long
+                name = name[:max_len - len(suffix)] + suffix
+        return name
 
-        return base
+    def __str__(self) -> str:
+        return self.render(DEFAULT_NAME_TEMPLATE)
 
 
 if __name__ == "__main__":
