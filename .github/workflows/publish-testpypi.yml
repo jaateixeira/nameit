@@ -1,0 +1,49 @@
+name: Publish to TestPyPI
+
+# Manual trigger only. One-time setup on https://test.pypi.org (Account > Publishing > add a pending publisher):
+#   project: nameit-pdf   owner: jaateixeira   repository: nameit
+#   workflow: publish-testpypi.yml   environment: testpypi
+# No API token is stored anywhere: PyPI trusts this workflow through OpenID Connect.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install system libraries
+        run: sudo apt-get update && sudo apt-get install -y libmagic1
+      - name: Test before building
+        run: |
+          python -m pip install --upgrade pip build twine mypy types-requests
+          pip install -e .
+          mypy
+          python -m unittest discover -s unit-tests/
+      - name: Build sdist and wheel
+        run: |
+          rm -rf dist
+          python -m build
+          twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write   # trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
