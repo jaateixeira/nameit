@@ -11,6 +11,7 @@ Example::
     format = "{authors} ({year}). {title}. {publication}. {publisher}"
     methods = ["crossref", "pdf-metadata"]   # tried in this order
     recursive = true
+    git = true                               # rename tracked files with `git mv`
     crossref_mailto = "you@example.org"      # identifies you to Crossref's faster "polite" pool
 """
 import os
@@ -28,7 +29,7 @@ from nameit.api import METHOD_CROSSREF, METHOD_PDF_METADATA
 from nameit.models.data_models import validate_name_template
 
 CONFIG_FILE_NAME = ".nameitrc"
-KNOWN_KEYS = {"format", "methods", "recursive", "crossref_mailto"}
+KNOWN_KEYS = {"format", "methods", "recursive", "crossref_mailto", "git"}
 KNOWN_METHODS = (METHOD_CROSSREF, METHOD_PDF_METADATA)
 
 
@@ -41,6 +42,7 @@ class Config:
     name_format: Optional[str] = None
     methods: Optional[List[str]] = None
     recursive: bool = False
+    use_git: bool = False
     crossref_mailto: Optional[str] = None
     sources: List[Path] = field(default_factory=list)       # files that were read
     warnings: List[str] = field(default_factory=list)       # e.g. unknown keys
@@ -77,6 +79,11 @@ def _apply(config: Config, path: Path, data: Dict[str, Any]) -> None:
         if not isinstance(data["recursive"], bool):
             raise ConfigError(f"{path}: recursive must be true or false")
         config.recursive = data["recursive"]
+
+    if "git" in data:
+        if not isinstance(data["git"], bool):
+            raise ConfigError(f"{path}: git must be true or false")
+        config.use_git = data["git"]
 
     if "crossref_mailto" in data:
         mailto = data["crossref_mailto"]
