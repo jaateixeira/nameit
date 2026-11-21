@@ -20,15 +20,9 @@ It can extract structured data from PDFs using: (1) pdf meta-data, (2) the Cross
 ![LayoutLM](https://img.shields.io/badge/LayoutLM-v3-FF6F00?style=for-the-badge&logo=microsoft&logoColor=white)
 ![PDF%20AI](https://img.shields.io/badge/PDF_AI-Structured_Data-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
-![Transformers](https://img.shields.io/badge/🤗-Transformers-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)
-![LayoutLM](https://img.shields.io/badge/LayoutLM-v3-FF6F00?style=for-the-badge&logo=microsoft&logoColor=white)
-![PDF%20AI](https://img.shields.io/badge/PDF_AI-Structured_Data-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
 
 
 Extract structured data from PDFs using state-of-the-art layout understanding models.
-=======
 
 
 ## Build Status
@@ -89,11 +83,11 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher would become "
 
 # Requirements # 
 
-* Python 3 -  Tested on > 3.10
-* Habanero 
+* Python 3 -  Tested on 3.10 - 3.13
+* Habanero (Crossref API)
 * PyMuPDF
-* Transformers
-* PyTorch
+* libmagic (system library; `apt install libmagic1` or `brew install libmagic`)
+* Transformers and PyTorch - only for the optional LayoutLMv3 mode (`pip install -r requirements-ai.txt`)
 
 We suport the ext3, ext4, xfs, zfs, NTFS, APFS, HFS+ and xFAT filesystems. Support for FAT32 pending. 
 Should work in most modern computers running Linux, macOS and Windows. Problems could arise with the use of old  USB flash drives  and SDcard disks in old Linux Kernels. 
@@ -110,28 +104,48 @@ NameIt is pure python3 code.  It depends on several online public packages, publ
 `$ pip3 install PyMuPDF` <- required to process the first page of a pdf article. 
 
 ## HuggingFace Transformers, PyTorch  ##
-`$ pip3 install transformers torch ` <- required to use the LayoutLM AI/ML model 
+`$ pip3 install -r requirements-ai.txt` <- optional, only to use the LayoutLM AI/ML model (experimental, not yet functional) 
 
 # How to use it 
 
-* Clone/Fork the repository or download its source code 
-* Install the Habanero, PyMuPDF, Transformers, PyTorch and other dependencies
-  `$ pip3 install -r requirements.txt`  
+## Install
 
-* Invoke the Python script and pass the file to be renamed as an argument.
-* Last tested on Mac and Linux with Python 3.10, 3.11, 3.12 and 3.13
-* You can also pass a folder as an argument and NameIt will attempt to rename all pdf files in that folder.
+```
+$ git clone https://github.com/jaateixeira/nameit && cd nameit
+$ pip install .            # or: pip install -e ".[dev]"   for development
+$ pip install ".[ai]"      # optional: only for the experimental LayoutLMv3 mode
+```
 
-## Example: ## 
+This gives you the `nameit` command (`python -m nameit` and the old `./NameIt` launcher work too).
+On Linux you also need libmagic (`apt install libmagic1`); on macOS `brew install libmagic`.
 
+## Command line
 
-`$ NameIt 4242343.pdf`
+```
+$ nameit paper.pdf                  # look up the DOI found in the PDF in Crossref (default)
+$ nameit -d research-articles       # dry run: show old -> new names, rename nothing
+$ nameit -r research-articles       # include subfolders
+$ nameit -p research-articles       # use the metadata embedded in the PDF (offline)
+$ nameit -c -p research-articles    # Crossref first, PDF metadata as a fallback
+$ nameit --undo research-articles/.nameit-undo-20261120-225603.json
+```
 
-`$ NameIt research-articles-collection`
+* Existing files are never overwritten: a clash gets a ` (1)`, ` (2)`, ... suffix.
+* Every real run writes a `.nameit-undo-<timestamp>.json` log in the folder you gave, and `--undo` reverses it.
+* `-p` needs a usable title, author and year in the PDF; the journal is taken from the PDF's subject field when it looks like a citation, otherwise the filename says `Unknown publication` / `Unknown publisher`.
+* Logs and the Crossref cache live in your user cache/log directory (e.g. `~/.cache/nameit`), not in the folder you are renaming. Use `-v` / `-vv` to see them on screen and `-s` to silence them.
+* Exit code is 1 when nothing could be renamed.
 
-`$ NameIt --help`
+## From Python
 
+```python
+from nameit import plan_rename, rename_pdf
 
+for item in plan_rename("papers/", methods=("crossref", "pdf-metadata"), recursive=True):
+    print(item.source.name, "->", item.target and item.target.name, item.reason)
+
+rename_pdf("papers/", dry_run=False)   # plan + apply, writes an undo log
+```
 
 # How it works 
 

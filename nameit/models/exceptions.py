@@ -1,3 +1,4 @@
+import argparse
 import os
 
 
@@ -78,7 +79,7 @@ class InvalidCrossrefDataError(Exception):
 
 
 # Filesystem exceptions
-class InvalidNameItPath(FileSystemError):
+class InvalidNameItPath(FileSystemError, argparse.ArgumentTypeError):
     """Raised when a provided path is invalid or doesn't meet PDF requirements.
 
     Args:

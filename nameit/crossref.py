@@ -1,7 +1,7 @@
 import sys
 
-from models.exceptions import InvalidCrossrefDataError
-from utils.unified_logger import console, logger
+from nameit.models.exceptions import InvalidCrossrefDataError
+from nameit.utils.unified_logger import console, logger
 
 import re
 from typing import Optional, Dict, Any, Union
@@ -24,10 +24,11 @@ from rich.traceback import install
 install(show_locals=True)  # Shows local variables in traceback
 
 
-from utils.unified_console import console
-from utils.unified_logger import logger
+from nameit.utils.paths import cache_dir
+from nameit.utils.unified_console import console
+from nameit.utils.unified_logger import logger
 
-from utils.validators import (
+from nameit.utils.validators import (
     validate_first_name,
     validate_last_name,
     validate_suffix,
@@ -39,10 +40,10 @@ from utils.validators import (
     validate_authors_list_retrieved_from_cross_ref, valid_crossref_metadata
 )
 
-from models.data_models import Publication
+from nameit.models.data_models import Publication
 
 # Enable caching with 1-year expiration
-requests_cache.install_cache('crossref_cache', expire_after=31536000)  #
+requests_cache.install_cache(str(cache_dir() / 'crossref_cache'), expire_after=31536000)  #
 
 def format_author_names(authors: list, debug: bool = False) -> str:
     """

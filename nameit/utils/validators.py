@@ -11,12 +11,12 @@ from typing import Optional, Dict, Union, Any
 
 from nameparser import HumanName
 
-from models.types import PathLike
-from utils.unified_console import console
-from utils.unified_logger import logger
+from nameit.models.types import PathLike
+from nameit.utils.unified_console import console
+from nameit.utils.unified_logger import logger
 
 
-from models.exceptions import InvalidCrossrefDataError, NameItError, InvalidNameItPath
+from nameit.models.exceptions import InvalidCrossrefDataError, NameItError, InvalidNameItPath
 
 
 def validate_first_name(name: str) -> bool:
@@ -216,16 +216,16 @@ def is_valid_path(path_to_rename: PathLike) -> bool:
         console.print("[red]Cli commands '- x' should be '-x' <- frequent error [/red]")
         return False
 
-    if pathlib.Path(path_to_rename).is_file and is_valid_path_to_a_file_than_should_be_renamed(path_to_rename):
+    if pathlib.Path(path_to_rename).is_file() and is_valid_path_to_a_file_than_should_be_renamed(path_to_rename):
         return True
-    elif pathlib.Path(path_to_rename).is_dir and is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename):
+    elif pathlib.Path(path_to_rename).is_dir() and is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename):
         return True
     return False
 
 
 def valid_path(path_to_rename: PathLike) -> PathLike:
 
-    if pathlib.Path(path_to_rename).is_file and is_valid_path_to_a_file_than_should_be_renamed(path_to_rename):
+    if pathlib.Path(path_to_rename).is_file() and is_valid_path_to_a_file_than_should_be_renamed(path_to_rename):
         return path_to_rename
     elif pathlib.Path(path_to_rename).is_dir() and  is_valid_path_to_a_directory_with_files_that_should_be_renamed(path_to_rename):
         return path_to_rename
@@ -301,6 +301,8 @@ def is_valid_path_to_a_file_than_should_be_renamed(path_to_rename: PathLike) -> 
 
     # --- Step 3: Validate files ---
     if os.path.isfile(path_to_rename):
+        if not os.access(path_to_rename, os.R_OK):
+            raise PermissionError(f"No read permission for '{path_to_rename}'")
         # Check extension
         if not str(path_to_rename).lower().endswith('.pdf'):
             raise InvalidNameItPath(
