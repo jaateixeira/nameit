@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,15 +7,23 @@ name = "nameit-pdf"
 dynamic = ["version"]
 description = "Rename research-article PDFs in a standardised way: author, year, title, publication, publisher."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "Jose Teixeira" }]
 keywords = ["pdf", "rename", "crossref", "doi", "bibliography", "research"]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Text Processing",
+    "Topic :: Utilities",
 ]
 dependencies = [
     "bibtexparser>=1.4,<2.0",
@@ -36,6 +44,7 @@ dev = ["coverage", "mypy", "types-requests"]
 
 [project.urls]
 Homepage = "https://github.com/jaateixeira/nameit"
+Issues = "https://github.com/jaateixeira/nameit/issues"
 
 [project.scripts]
 nameit = "nameit.cli:main"

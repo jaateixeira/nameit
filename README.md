@@ -127,9 +127,15 @@ $ nameit -d research-articles       # dry run: show old -> new names, rename not
 $ nameit -r research-articles       # include subfolders
 $ nameit -p research-articles       # use the metadata embedded in the PDF (offline)
 $ nameit -c -p research-articles    # Crossref first, PDF metadata as a fallback
+$ nameit "papers/2024*.pdf"         # patterns: quote them (works on every shell) ...
+$ nameit papers/2024*.pdf a.pdf b/  # ... or let the shell expand them; several paths are fine
+$ nameit "papers/**/*.pdf"          # ** reaches into subfolders
+$ nameit --git research-articles    # rename git-tracked files with `git mv` (history kept, rename staged)
 $ nameit --undo research-articles/.nameit-undo-20261120-225603.json
 ```
 
+* Patterns only pick up `.pdf` files; a pattern that matches nothing is an error. A file you name explicitly that is not a PDF is reported and skipped.
+* `--git` (or `git = true` in `.nameitrc`) uses `git mv` for files that git tracks, so the rename is staged and history follows the file; untracked files, or folders outside a repository, are renamed normally and the summary says how many. Commit when you are happy. The undo log is an untracked file in your repository: add `.nameit-undo-*.json` to your `.gitignore`.
 * Existing files are never overwritten: a clash gets a ` (1)`, ` (2)`, ... suffix.
 * Every real run writes a `.nameit-undo-<timestamp>.json` log in the folder you gave, and `--undo` reverses it.
 * `-p` needs a usable title, author and year in the PDF; the journal is taken from the PDF's subject field when it looks like a citation, otherwise the filename says `Unknown publication` / `Unknown publisher`.
@@ -157,6 +163,13 @@ crossref_mailto = "you@example.org"          # identifies you to Crossref's fast
 * Unknown settings in the file produce a warning; invalid values stop with exit code 2.
 * Crossref answers are cached for a year under your user cache directory, and temporary failures (rate limits, server errors, network) are retried with backoff.
 
+## Releasing (maintainers)
+
+The package is published as `nameit-pdf` (the command stays `nameit`). Build and check locally with
+`pip install build twine && python -m build && twine check dist/*`. For TestPyPI, set up trusted publishing once
+(see the header of `.github/workflows/publish-testpypi.yml`), then run that workflow from the Actions tab; it tests,
+builds and uploads without any stored token. Bump `__version__` in `nameit/__init__.py` before each release.
+
 ## From Python
 
 ```python
@@ -166,6 +179,7 @@ for item in plan_rename("papers/", methods=("crossref", "pdf-metadata"), recursi
     print(item.source.name, "->", item.target and item.target.name, item.reason)
 
 rename_pdf("papers/", dry_run=False)   # plan + apply, writes an undo log
+plan_rename(["papers/2024*.pdf", "inbox/"])   # patterns and several paths work here too
 ```
 
 # How it works 
