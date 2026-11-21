@@ -39,7 +39,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-ai = ["transformers", "torch", "pillow"]
 dev = ["coverage", "mypy", "types-requests"]
 
 [project.urls]

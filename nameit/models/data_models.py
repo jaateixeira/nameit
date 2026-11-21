@@ -117,7 +117,7 @@ class Publication:
             return self.authors.strip()
 
         def surname(name: str) -> str:
-            match = re.search(r'([A-ZÅÄÖÁÉÍÓÚÑ][a-zà-ž]*)$', name)
+            match = re.search(r'(?:^|\s)([A-ZÅÄÖÁÉÍÓÚÑ][^\s]*)$', name)
             return match.group(1) if match else name
 
         if len(authors) > 2:

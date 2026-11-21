@@ -18,7 +18,7 @@ from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn
 from rich.table import Table
 
 from nameit.api import (
-    METHOD_CROSSREF, METHOD_PDF_METADATA, STATUS_RENAME, STATUS_SKIPPED, STATUS_UNCHANGED,
+    METHOD_CROSSREF, METHOD_LAYOUT, METHOD_PDF_METADATA, STATUS_RENAME, STATUS_SKIPPED, STATUS_UNCHANGED,
     RenamePlan, apply_plan, input_folder, iter_pdf_files, plan_rename, rename_pdf_file, undo_renames,
     unique_target_path,
 )
@@ -101,8 +101,9 @@ def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
                             )
     meta_group.add_argument("-c", "--use-crossref", action="store_true",
                             help="Look up the DOI found in the PDF in the Crossref API (default when no method is given)")
-    meta_group.add_argument("-l", "--use-layoutlmv3", action="store_true",
-                            help="Use the LayoutLMv3 model (experimental, not available yet)")
+    meta_group.add_argument("-l", "--use-layout", "--use-layoutlmv3", dest="use_layout", action="store_true",
+                            help="Read title, authors and year from how the first page looks (font sizes and "
+                                 "position). Works offline and without a DOI; use when Crossref is unavailable")
     # Support for recursion in directory trees
     parser.add_argument('-r', '--recursive', action='store_true', help='Enable recursive processing')
 
@@ -148,6 +149,8 @@ def selected_methods(cli_args: argparse.Namespace) -> list:
         methods.append(METHOD_CROSSREF)
     if cli_args.use_pdf_metadata:
         methods.append(METHOD_PDF_METADATA)
+    if cli_args.use_layout:
+        methods.append(METHOD_LAYOUT)
     configured = getattr(cli_args, "methods_order", None)  # order set in .nameitrc
     if configured:
         methods = [m for m in configured if m in methods] + [m for m in methods if m not in configured]
@@ -178,9 +181,10 @@ def apply_configuration(parsed_args: argparse.Namespace) -> None:
         parsed_args.recursive = True
     if config.use_git:
         parsed_args.use_git = True
-    if config.methods and not (parsed_args.use_crossref or parsed_args.use_pdf_metadata):
+    if config.methods and not (parsed_args.use_crossref or parsed_args.use_pdf_metadata or parsed_args.use_layout):
         parsed_args.use_crossref = METHOD_CROSSREF in config.methods
         parsed_args.use_pdf_metadata = METHOD_PDF_METADATA in config.methods
+        parsed_args.use_layout = METHOD_LAYOUT in config.methods
         parsed_args.methods_order = config.methods
     set_active_mailto(config.crossref_mailto)
 
@@ -204,21 +208,16 @@ def parse_and_validate_arguments(argv: Optional[Sequence[str]] = None) -> argpar
         console.print("[red]A path to a PDF file, a folder or a pattern is required.[/red]")
         sys.exit(2)
 
-    if parsed_args.use_layoutlmv3:
-        console.print("[red]The LayoutLMv3 mode (-l) is experimental and not available yet. "
-                      "Use -c (Crossref) and/or -p (PDF metadata).[/red]")
-        sys.exit(2)
-
-    if not (parsed_args.use_crossref or parsed_args.use_pdf_metadata):
+    if not (parsed_args.use_crossref or parsed_args.use_pdf_metadata or parsed_args.use_layout):
         parsed_args.use_crossref = True  # documented default
 
     if parsed_args.use_crossref and parsed_args.undo is None and not is_there_internet_access():
-        if parsed_args.use_pdf_metadata:
-            console.print("[yellow]Crossref unreachable: falling back to PDF metadata only.[/yellow]")
+        if parsed_args.use_pdf_metadata or parsed_args.use_layout:
+            console.print("[yellow]Crossref unreachable: using the offline methods only.[/yellow]")
             parsed_args.use_crossref = False
         else:
             console.print("[red]Internet connection unavailable: Crossref lookups need internet access. "
-                          "Use -p to rely on the PDF's own metadata.[/red]")
+                          "Use -p (PDF metadata) and/or -l (page layout) to work offline.[/red]")
             sys.exit(1)
 
     return parsed_args

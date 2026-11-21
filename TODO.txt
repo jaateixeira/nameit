@@ -8,7 +8,7 @@ Debug with -v -vv all the way
 
 Make it working for cross re
 f
-Make it working for keywords 
+Make -l (layout) work for more journal designs; find journal names that are not "Journal of ..."
 
 
 Add use of recursive  -r and dry-run support to features list 
