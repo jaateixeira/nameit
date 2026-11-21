@@ -18,15 +18,17 @@ from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn
 from rich.table import Table
 
 from nameit.api import (
-    METHOD_CROSSREF, METHOD_LAYOUT, METHOD_PDF_METADATA, STATUS_RENAME, STATUS_SKIPPED, STATUS_UNCHANGED,
+    METHOD_CROSSREF, METHOD_LAYOUT, METHOD_PDF_METADATA, STRATEGY_FIRST, STRATEGY_VOTE, STATUS_RENAME, STATUS_SKIPPED, STATUS_UNCHANGED,
     RenamePlan, apply_plan, input_folder, iter_pdf_files, plan_rename, rename_pdf_file, undo_renames,
     unique_target_path,
 )
 from nameit.config import ConfigError, load_config, set_active_mailto
-from nameit.models.data_models import validate_name_template
+from nameit.models.data_models import DEFAULT_NAME_TEMPLATE, validate_name_template
 from nameit.models.exceptions import InvalidNameItPath
 from nameit.models.types import PathLike
 from nameit.utils.unified_logger import logger
+from nameit.interactive import Chooser
+
 from nameit.utils.verbosity import NORMAL, SILENT, configure_output, get_verbosity, vprint, vvprint
 from nameit.utils.unified_console import console
 from nameit.utils.validators import is_valid_path
@@ -104,6 +106,15 @@ def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     meta_group.add_argument("-l", "--use-layout", "--use-layoutlmv3", dest="use_layout", action="store_true",
                             help="Read title, authors and year from how the first page looks (font sizes and "
                                  "position). Works offline and without a DOI; use when Crossref is unavailable")
+    meta_group.add_argument("--vote", action="store_true",
+                            help="With several methods, ask them all and take the majority instead of "
+                                 "using the first that answers (the default when no method is given)")
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument("-i", "--interactive", action="store_true",
+                            help="Show the suggestions of every method and let you choose, file by file "
+                                 "(the default when run in a terminal and no method is given)")
+    mode_group.add_argument("-y", "--yes", action="store_true",
+                            help="Never ask: use the majority vote (the default in scripts and pipes)")
     # Support for recursion in directory trees
     parser.add_argument('-r', '--recursive', action='store_true', help='Enable recursive processing')
 
@@ -140,6 +151,15 @@ def remove_invalid_characters(text):
         for c in text
     )
     return cleaned_text
+
+
+def interactive_mode(cli_args: argparse.Namespace) -> bool:
+    """Ask the user per file? Only with several suggestions to choose from, in a terminal, never in -s / -d."""
+    if cli_args.yes or cli_args.dry_run or get_verbosity() == SILENT or len(selected_methods(cli_args)) < 2:
+        return False
+    if cli_args.interactive:
+        return True
+    return bool(cli_args.vote and sys.stdin.isatty() and sys.stdout.isatty())
 
 
 def selected_methods(cli_args: argparse.Namespace) -> list:
@@ -209,7 +229,12 @@ def parse_and_validate_arguments(argv: Optional[Sequence[str]] = None) -> argpar
         sys.exit(2)
 
     if not (parsed_args.use_crossref or parsed_args.use_pdf_metadata or parsed_args.use_layout):
-        parsed_args.use_crossref = True  # documented default
+        # documented default: ask all three methods and let them vote
+        parsed_args.use_crossref = parsed_args.use_pdf_metadata = parsed_args.use_layout = True
+        parsed_args.vote = True
+
+    if parsed_args.interactive:
+        parsed_args.vote = True  # choosing needs every method's suggestion
 
     if parsed_args.use_crossref and parsed_args.undo is None and not is_there_internet_access():
         if parsed_args.use_pdf_metadata or parsed_args.use_layout:
@@ -232,7 +257,8 @@ def print_plan(plans: Sequence[RenamePlan], dry_run: bool) -> None:
     table.add_column("Via", style="cyan")
     for item in plans:
         if item.status == STATUS_RENAME:
-            table.add_row(item.source.name, f"[green]{item.target.name if item.target else ''}[/green]", item.method or "")
+            via = f"{item.method} ({item.agreement})" if item.agreement else (item.method or "")
+            table.add_row(item.source.name, f"[green]{item.target.name if item.target else ''}[/green]", via)
         elif item.status == STATUS_UNCHANGED:
             table.add_row(item.source.name, "[dim]already named[/dim]", item.method or "")
         else:
@@ -243,8 +269,14 @@ def print_plan(plans: Sequence[RenamePlan], dry_run: bool) -> None:
 def plan_with_progress(path: Sequence[str], cli_args: argparse.Namespace) -> list:
     """plan_rename with a rich progress bar (normal output level only: -v/-vv print their own lines)."""
     methods = selected_methods(cli_args)
-    if get_verbosity() != NORMAL:
-        return plan_rename(path, methods, cli_args.recursive, name_format=cli_args.name_format)
+    strategy = STRATEGY_VOTE if cli_args.vote else STRATEGY_FIRST
+    chooser = None
+    if interactive_mode(cli_args):
+        template = cli_args.name_format or DEFAULT_NAME_TEMPLATE
+        chooser = Chooser(console, lambda c: c.publication.render(template) + ".pdf")
+    if get_verbosity() != NORMAL or chooser is not None:  # prompts and a live progress bar do not mix
+        return plan_rename(path, methods, cli_args.recursive, name_format=cli_args.name_format,
+                           strategy=strategy, chooser=chooser)
 
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), BarColumn(),
                   MofNCompleteColumn(), console=console, transient=True) as bar:
@@ -254,7 +286,7 @@ def plan_with_progress(path: Sequence[str], cli_args: argparse.Namespace) -> lis
             bar.update(task, total=total, completed=index, description=f"[cyan]{pdf.name[:60]}[/cyan]")
 
         return plan_rename(path, methods, cli_args.recursive, progress=on_progress,
-                           name_format=cli_args.name_format)
+                           name_format=cli_args.name_format, strategy=strategy)
 
 
 def execute_main_logic(cli_args: argparse.Namespace) -> int:

@@ -94,7 +94,7 @@ class OutputLevels(unittest.TestCase):
         self.assertEqual(out.strip(), "")
 
     def test_unusable_crossref_record_is_skipped_and_reported(self):
-        code, out = self.run_cli("-d", "-v", payload=AUTHOR_WITHOUT_GIVEN_NAME)
+        code, out = self.run_cli("-c", "-d", "-v", payload=AUTHOR_WITHOUT_GIVEN_NAME)
         self.assertEqual(code, 1)                      # nothing could be renamed
         self.assertIn("not usable", out)
         self.assertIn("skipped: no metadata found", out)

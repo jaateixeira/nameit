@@ -116,13 +116,17 @@ On Linux you also need libmagic (`apt install libmagic1`); on macOS `brew instal
 ## Command line
 
 ```
-$ nameit paper.pdf                  # look up the DOI found in the PDF in Crossref (default)
+$ nameit research-articles          # default: Crossref, PDF metadata and page layout each suggest a name;
+                                    #   in a terminal you choose, in scripts/pipes the majority vote decides
 $ nameit -d research-articles       # dry run: show old -> new names, rename nothing
 $ nameit -r research-articles       # include subfolders
 $ nameit -p research-articles       # use the metadata embedded in the PDF (offline)
 $ nameit -c -p research-articles    # Crossref first, PDF metadata as a fallback
 $ nameit -l research-articles       # page layout only: offline, no DOI needed (use when Crossref is down)
-$ nameit -c -p -l research-articles # all three, in that order
+$ nameit -c -p -l research-articles # all three, in that order (first answer wins)
+$ nameit -p -l --vote research-articles  # ask both offline methods and take the majority
+$ nameit -i research-articles       # always ask, file by file
+$ nameit -y research-articles       # never ask: majority vote (what scripts and pipes get)
 $ nameit "papers/2024*.pdf"         # patterns: quote them (works on every shell) ...
 $ nameit papers/2024*.pdf a.pdf b/  # ... or let the shell expand them; several paths are fine
 $ nameit "papers/**/*.pdf"          # ** reaches into subfolders
@@ -130,6 +134,7 @@ $ nameit --git research-articles    # rename git-tracked files with `git mv` (hi
 $ nameit --undo research-articles/.nameit-undo-20261120-225603.json
 ```
 
+* Default mode: all three methods are asked for every PDF. Two methods *agree* when they give the same first author, year and title (journal and publisher are ignored, since the offline methods often cannot fill them). The biggest agreeing group wins; the journal and publisher come from the best-ranked agreeing method that has a real value. With no majority, or only one answer, the best-ranked method wins (Crossref, then PDF metadata, then layout) and the table says `no consensus` / `single source`. In interactive mode you see every suggestion with the vote result and answer a number, Enter (take the suggestion), `s` (skip), `a` (accept suggestions for all remaining files) or `q` (quit). `-d`, `-s`, `-y` and non-terminal runs never ask. If Crossref is unreachable the two offline methods vote. Naming methods with `-c`/`-p`/`-l` (or `methods` in `.nameitrc`) keeps the old "first answer wins" behaviour unless you add `--vote` or `-i`.
 * Patterns only pick up `.pdf` files; a pattern that matches nothing is an error. A file you name explicitly that is not a PDF is reported and skipped.
 * `--git` (or `git = true` in `.nameitrc`) uses `git mv` for files that git tracks, so the rename is staged and history follows the file; untracked files, or folders outside a repository, are renamed normally and the summary says how many. Commit when you are happy. The undo log is an untracked file in your repository: add `.nameit-undo-*.json` to your `.gitignore`.
 * Existing files are never overwritten: a clash gets a ` (1)`, ` (2)`, ... suffix.
