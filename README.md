@@ -137,6 +137,26 @@ $ nameit --undo research-articles/.nameit-undo-20261120-225603.json
 * Output levels (all rich): by default you get a progress bar for batches, the old → new table and a summary. `-v` adds one line per step (DOI found, Crossref answered, name chosen) and warnings. `-vv` adds rich tables of the raw and validated Crossref data, debug logs and tracebacks. `-s` prints nothing but errors; use the exit code.
 * Exit code is 1 when nothing could be renamed.
 
+## Configuration (`.nameitrc`) and filename templates
+
+`nameit` reads a small TOML file named `.nameitrc`: first `~/.nameitrc`, then one inside the folder you are renaming
+(so a collection can have its own rules). Command-line flags always win; `--config FILE` reads only that file.
+
+```toml
+# ~/.nameitrc
+format = "{authors} ({year}). {title}. {publication}. {publisher}"   # the NameIt standard (default)
+methods = ["crossref", "pdf-metadata"]       # tried in this order when you give no -c / -p
+recursive = true
+crossref_mailto = "you@example.org"          # identifies you to Crossref's faster "polite" pool
+```
+
+* Placeholders: `{authors}` `{year}` `{title}` `{publication}` `{publisher}` (short form, e.g. ACM) `{publisher_full}`.
+  Anything else is rejected before a single file is touched, as is a template without placeholders or with `/`.
+* One-off: `nameit --format "{year} - {authors} - {title}" papers/`. Names longer than 255 characters get a shortened title.
+* `crossref_mailto` (or the `NAMEIT_MAILTO` environment variable) is optional; without it Crossref still answers, just from its anonymous pool.
+* Unknown settings in the file produce a warning; invalid values stop with exit code 2.
+* Crossref answers are cached for a year under your user cache directory, and temporary failures (rate limits, server errors, network) are retried with backoff.
+
 ## From Python
 
 ```python

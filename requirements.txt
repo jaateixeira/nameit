@@ -5,6 +5,6 @@ rich
 unidecode
 habanero>=2,<3
 requests>=2.32,<3
-requests-cache
 python-magic
 pymupdf
+tomli>=2; python_version < '3.11'
