@@ -19,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Union
 
+from nameit.consensus import Candidate, Decision, decide
 from nameit.models.data_models import DEFAULT_NAME_TEMPLATE, Publication, validate_name_template
 from nameit.models.exceptions import InvalidNameItPath
 from nameit.models.types import PathLike
@@ -46,6 +47,7 @@ class RenamePlan:
     method: Optional[str] = None
     status: str = STATUS_SKIPPED
     reason: str = ""
+    agreement: str = ""        # strategy "vote": "2/3 agree", "no consensus", "single source", "chosen by user"
     via_git: bool = False      # set by apply_plan: renamed with `git mv` (and so staged)
 
 
@@ -197,11 +199,33 @@ def input_folder(inputs: PathInput) -> Optional[Path]:
 
 # -------------------------------------------------------------------- planning
 
+def _collect_candidates(pdf: Path, methods: Sequence[str]) -> List[Candidate]:
+    """Ask every method, in rank order. A method that crashes counts as having no answer."""
+    candidates = []
+    for method in methods:
+        try:
+            publication = EXTRACTORS[method](str(pdf))
+        except Exception as e:  # one broken method must not stop the others
+            logger.warning(f"{method} failed for {pdf}: {e}")
+            continue
+        if publication:
+            candidates.append(Candidate(method, publication))
+    return candidates
+
+
+STRATEGY_FIRST = "first"   # try the methods in order; the first answer wins
+STRATEGY_VOTE = "vote"     # ask every method and take the majority (see nameit.consensus)
+
+ChooserFn = Callable[[Path, Sequence[Candidate], Decision], Optional[Candidate]]
+
+
 def plan_rename(path: PathInput,
                 methods: Sequence[str] = (METHOD_CROSSREF,),
                 recursive: bool = False,
                 progress: Optional[ProgressCallback] = None,
-                name_format: Optional[str] = None) -> List[RenamePlan]:
+                name_format: Optional[str] = None,
+                strategy: str = STRATEGY_FIRST,
+                chooser: Optional[ChooserFn] = None) -> List[RenamePlan]:
     """Work out the new name of every PDF at `path` without renaming anything.
 
     `path` is a PDF, a folder, a glob pattern such as "papers/2024*.pdf", or a list of those.
@@ -209,8 +233,14 @@ def plan_rename(path: PathInput,
     Methods are tried in the given order; the first that yields a publication wins.
     `progress(file, index, total)` is called before each file is examined.
     `name_format` is a filename template such as "{authors} ({year}). {title}" (see nameit.config).
+
+    With `strategy="vote"` every method is asked and the majority wins (best-ranked method, i.e. the
+    earliest in `methods`, when there is no majority). `chooser(pdf, candidates, decision)` may then
+    override the suggestion: it returns the chosen Candidate, or None to skip the file.
     """
     validate_name_template(name_format or DEFAULT_NAME_TEMPLATE)
+    if strategy not in (STRATEGY_FIRST, STRATEGY_VOTE):
+        raise ValueError(f"Unknown strategy {strategy!r}; choose '{STRATEGY_FIRST}' or '{STRATEGY_VOTE}'")
     unknown = [m for m in methods if m not in EXTRACTORS]
     if unknown:
         raise ValueError(f"Unknown method(s) {unknown}; choose from {sorted(EXTRACTORS)}")
@@ -234,23 +264,38 @@ def plan_rename(path: PathInput,
             plans.append(RenamePlan(pdf, reason=str(e)))
             continue
 
-        publication, used = None, None
-        for method in methods:
-            publication = EXTRACTORS[method](str(pdf))
-            if publication:
-                used = method
-                break
+        publication, used, agreement = None, None, ""
+        if strategy == STRATEGY_VOTE:
+            candidates = _collect_candidates(pdf, methods)
+            decision = decide(candidates)
+            if decision is None:
+                plans.append(RenamePlan(pdf, reason=f"no metadata found ({', '.join(methods)})"))
+                continue
+            publication, used, agreement = decision.publication, decision.method, decision.label
+            if chooser is not None:
+                picked = chooser(pdf, candidates, decision)
+                if picked is None:
+                    plans.append(RenamePlan(pdf, reason="skipped by the user", agreement=agreement))
+                    continue
+                if picked.method != decision.method or picked.publication != decision.publication:
+                    publication, used, agreement = picked.publication, picked.method, "chosen by user"
+        else:
+            for method in methods:
+                publication = EXTRACTORS[method](str(pdf))
+                if publication:
+                    used = method
+                    break
         if not publication:
             plans.append(RenamePlan(pdf, reason=f"no metadata found ({', '.join(methods)})"))
             continue
 
         wanted = target_path_for(pdf, publication.render(name_format or DEFAULT_NAME_TEMPLATE))
         if wanted == pdf:
-            plans.append(RenamePlan(pdf, pdf, used, STATUS_UNCHANGED, "already named"))
+            plans.append(RenamePlan(pdf, pdf, used, STATUS_UNCHANGED, "already named", agreement))
             continue
         target = unique_target_path(wanted, reserved)
         reserved.append(target)
-        plans.append(RenamePlan(pdf, target, used, STATUS_RENAME))
+        plans.append(RenamePlan(pdf, target, used, STATUS_RENAME, agreement=agreement))
     return plans
 
 
