@@ -133,7 +133,8 @@ $ nameit --undo research-articles/.nameit-undo-20261120-225603.json
 * Existing files are never overwritten: a clash gets a ` (1)`, ` (2)`, ... suffix.
 * Every real run writes a `.nameit-undo-<timestamp>.json` log in the folder you gave, and `--undo` reverses it.
 * `-p` needs a usable title, author and year in the PDF; the journal is taken from the PDF's subject field when it looks like a citation, otherwise the filename says `Unknown publication` / `Unknown publisher`.
-* Logs and the Crossref cache live in your user cache/log directory (e.g. `~/.cache/nameit`), not in the folder you are renaming. Use `-v` / `-vv` to see them on screen and `-s` to silence them.
+* Logs and the Crossref cache live in your user cache/log directory (e.g. `~/.cache/nameit`), not in the folder you are renaming. 
+* Output levels (all rich): by default you get a progress bar for batches, the old → new table and a summary. `-v` adds one line per step (DOI found, Crossref answered, name chosen) and warnings. `-vv` adds rich tables of the raw and validated Crossref data, debug logs and tracebacks. `-s` prints nothing but errors; use the exit code.
 * Exit code is 1 when nothing could be renamed.
 
 ## From Python
