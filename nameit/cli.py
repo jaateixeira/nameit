@@ -19,7 +19,7 @@ from rich.table import Table
 
 from nameit.api import (
     METHOD_CROSSREF, METHOD_PDF_METADATA, STATUS_RENAME, STATUS_SKIPPED, STATUS_UNCHANGED,
-    RenamePlan, apply_plan, iter_pdf_files, plan_rename, rename_pdf_file, undo_renames,
+    RenamePlan, apply_plan, input_folder, iter_pdf_files, plan_rename, rename_pdf_file, undo_renames,
     unique_target_path,
 )
 from nameit.config import ConfigError, load_config, set_active_mailto
@@ -61,14 +61,6 @@ def normalize_path(nameit_path: Union[str, PathLike]) -> Path:
         raise TypeError(f"Could not convert input to Path object: {e}. Verify your given opath {nameit_path}")
 
 
-def validate_no_wildcards(file_path: str):
-    if re.search(r'[\*\?\[\]]', file_path):
-        raise argparse.ArgumentTypeError("Wildcards (*, ?, []) are not allowed. Provide a literal path.")
-    if not os.path.exists(file_path):
-        raise argparse.ArgumentTypeError(f"Path '{file_path}' does not exist.")
-    return file_path
-
-
 def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     """
 
@@ -78,14 +70,18 @@ def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         description="NameIt is a software tool that renames research articles in pdf files in a standardised way.",
         epilog="[dim]Created with ❤️ using Python[/dim]")
 
-    parser.add_argument("path", nargs="?", type=Path,
-                        help="Path to PDF file or folder containing PDFs")
+    parser.add_argument("paths", nargs="*", metavar="PATH",
+                        help='PDF files, folders with PDFs, or quoted patterns such as "papers/2024*.pdf" '
+                             '("**" reaches into subfolders)')
     parser.add_argument("--format", dest="name_format", metavar="TEMPLATE",
                         help='Filename template, e.g. "{authors} ({year}). {title}". Placeholders: '
                              '{authors} {year} {title} {publication} {publisher} {publisher_full}. '
                              'Default: "{authors} ({year}). {title}. {publication}. {publisher}"')
     parser.add_argument("--config", type=Path, metavar="FILE",
                         help="Read this .nameitrc instead of ~/.nameitrc and the one in the target folder")
+    parser.add_argument("--git", dest="use_git", action="store_true",
+                        help="Rename git-tracked files with `git mv` (history kept, rename staged); "
+                             "other files are renamed normally")
     parser.add_argument("--undo", metavar="LOGFILE", type=Path,
                         help="Revert the renames recorded in a .nameit-undo-*.json log and exit")
 
@@ -160,7 +156,10 @@ def selected_methods(cli_args: argparse.Namespace) -> list:
 
 def apply_configuration(parsed_args: argparse.Namespace) -> None:
     """Merge .nameitrc settings under the command-line flags (flags always win)."""
-    target = normalize_path(parsed_args.path) if parsed_args.path else None
+    try:
+        target = input_folder(parsed_args.paths) if parsed_args.paths else None
+    except InvalidNameItPath:
+        target = None  # the bad path is reported later, with a clearer message
     try:
         config = load_config(target, parsed_args.config)
     except ConfigError as e:
@@ -177,6 +176,8 @@ def apply_configuration(parsed_args: argparse.Namespace) -> None:
         parsed_args.name_format = config.name_format
     if config.recursive:
         parsed_args.recursive = True
+    if config.use_git:
+        parsed_args.use_git = True
     if config.methods and not (parsed_args.use_crossref or parsed_args.use_pdf_metadata):
         parsed_args.use_crossref = METHOD_CROSSREF in config.methods
         parsed_args.use_pdf_metadata = METHOD_PDF_METADATA in config.methods
@@ -199,8 +200,8 @@ def parse_and_validate_arguments(argv: Optional[Sequence[str]] = None) -> argpar
             console.print(f"[red]Invalid --format: {e}[/red]")
             sys.exit(2)
 
-    if parsed_args.undo is None and parsed_args.path is None:
-        console.print("[red]A path to a PDF file or folder is required.[/red]")
+    if parsed_args.undo is None and not parsed_args.paths:
+        console.print("[red]A path to a PDF file, a folder or a pattern is required.[/red]")
         sys.exit(2)
 
     if parsed_args.use_layoutlmv3:
@@ -240,7 +241,7 @@ def print_plan(plans: Sequence[RenamePlan], dry_run: bool) -> None:
     console.print(table)
 
 
-def plan_with_progress(path: Path, cli_args: argparse.Namespace) -> list:
+def plan_with_progress(path: Sequence[str], cli_args: argparse.Namespace) -> list:
     """plan_rename with a rich progress bar (normal output level only: -v/-vv print their own lines)."""
     methods = selected_methods(cli_args)
     if get_verbosity() != NORMAL:
@@ -263,11 +264,11 @@ def execute_main_logic(cli_args: argparse.Namespace) -> int:
         console.print(f"[green]Restored {len(restored)} file(s).[/green]")
         return 0
 
-    path: Path = normalize_path(cli_args.path)
-    logger.info(f"Processing {path} with {selected_methods(cli_args)}")
+    paths = list(cli_args.paths)
+    logger.info(f"Processing {paths} with {selected_methods(cli_args)}")
 
     try:
-        plans = plan_with_progress(path, cli_args)
+        plans = plan_with_progress(paths, cli_args)
     except InvalidNameItPath as e:
         console.print(f"[red]{e.reason}: {e.path}[/red]")
         return 1
@@ -278,9 +279,14 @@ def execute_main_logic(cli_args: argparse.Namespace) -> int:
     renamed = [p for p in plans if p.status == STATUS_RENAME]
     skipped = [p for p in plans if p.status == STATUS_SKIPPED]
     if not cli_args.dry_run:
-        log_path = apply_plan(plans, log_dir=path if path.is_dir() else path.parent)
+        log_path = apply_plan(plans, log_dir=input_folder(paths), use_git=cli_args.use_git)
         if get_verbosity() > SILENT:
-            console.print(f"[green]Renamed {len(renamed)} file(s)[/green], skipped {len(skipped)}.")
+            via_git = sum(1 for p in renamed if p.via_git)
+            git_note = f" ({via_git} with git mv, staged)" if cli_args.use_git else ""
+            console.print(f"[green]Renamed {len(renamed)} file(s)[/green]{git_note}, skipped {len(skipped)}.")
+            if cli_args.use_git and via_git < len(renamed):
+                console.print(f"[yellow]{len(renamed) - via_git} file(s) are not tracked by git "
+                              f"(or git is unavailable) and were renamed normally.[/yellow]")
             if log_path:
                 console.print(f"Undo with: nameit --undo '{log_path}'")
     elif get_verbosity() > SILENT:
