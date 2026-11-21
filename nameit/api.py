@@ -18,6 +18,7 @@ from typing import Callable, Dict, Iterable, Iterator, List, Optional, Sequence,
 
 ProgressCallback = Callable[[Path, int, int], None]  # (file, zero-based index, total)
 
+from nameit.models.data_models import DEFAULT_NAME_TEMPLATE, Publication, validate_name_template
 from nameit.models.exceptions import InvalidNameItPath
 from nameit.models.types import PathLike
 from nameit.utils.unified_logger import logger
@@ -93,17 +94,17 @@ def rename_pdf_file(pdf_file: PathLike, new_file_name: str) -> Path:
 
 # ------------------------------------------------------------------ extraction
 
-def _extract_crossref(pdf_file: str):
+def _extract_crossref(pdf_file: str) -> Optional[Publication]:
     from nameit.crossref import extract_publication_metadata_from_crossref_using_doi_in_pdf
     return extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file)
 
 
-def _extract_pdf_metadata(pdf_file: str):
+def _extract_pdf_metadata(pdf_file: str) -> Optional[Publication]:
     from nameit.pdf_metadata import extract_publication_from_pdf_metadata
     return extract_publication_from_pdf_metadata(pdf_file)
 
 
-EXTRACTORS: Dict[str, Callable[[str], object]] = {
+EXTRACTORS: Dict[str, Callable[[str], Optional[Publication]]] = {
     METHOD_CROSSREF: _extract_crossref,
     METHOD_PDF_METADATA: _extract_pdf_metadata,
 }
@@ -114,12 +115,15 @@ EXTRACTORS: Dict[str, Callable[[str], object]] = {
 def plan_rename(path: PathLike,
                 methods: Sequence[str] = (METHOD_CROSSREF,),
                 recursive: bool = False,
-                progress: Optional[ProgressCallback] = None) -> List[RenamePlan]:
+                progress: Optional[ProgressCallback] = None,
+                name_format: Optional[str] = None) -> List[RenamePlan]:
     """Work out the new name of every PDF at `path` without renaming anything.
 
     Methods are tried in the given order; the first that yields a publication wins.
     `progress(file, index, total)` is called before each file is examined.
+    `name_format` is a filename template such as "{authors} ({year}). {title}" (see nameit.config).
     """
+    validate_name_template(name_format or DEFAULT_NAME_TEMPLATE)
     unknown = [m for m in methods if m not in EXTRACTORS]
     if unknown:
         raise ValueError(f"Unknown method(s) {unknown}; choose from {sorted(EXTRACTORS)}")
@@ -155,7 +159,7 @@ def plan_rename(path: PathLike,
             plans.append(RenamePlan(pdf, reason=f"no metadata found ({', '.join(methods)})"))
             continue
 
-        wanted = target_path_for(pdf, str(publication))
+        wanted = target_path_for(pdf, publication.render(name_format or DEFAULT_NAME_TEMPLATE))
         if wanted == pdf:
             plans.append(RenamePlan(pdf, pdf, used, STATUS_UNCHANGED, "already named"))
             continue
@@ -209,9 +213,10 @@ def undo_renames(log_path: PathLike) -> List[Path]:
 def rename_pdf(path: PathLike,
                methods: Sequence[str] = (METHOD_CROSSREF,),
                dry_run: bool = False,
-               recursive: bool = False) -> List[RenamePlan]:
+               recursive: bool = False,
+               name_format: Optional[str] = None) -> List[RenamePlan]:
     """Plan and (unless dry_run) apply renames for a PDF file or a folder of PDFs."""
-    plans = plan_rename(path, methods, recursive)
+    plans = plan_rename(path, methods, recursive, name_format=name_format)
     if not dry_run:
         root = Path(path)
         apply_plan(plans, log_dir=root if root.is_dir() else root.parent)

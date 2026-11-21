@@ -3,9 +3,13 @@ import sys
 from nameit.models.exceptions import InvalidCrossrefDataError
 from nameit.utils.unified_logger import console, logger
 
+import hashlib
+import json
 import os
+import time
 import re
-from typing import Optional, Dict, Any, Union
+from pathlib import Path
+from typing import Callable, Optional, Dict, Any, Union
 
 
 
@@ -13,10 +17,9 @@ import pymupdf  # This is the package name
 
 
 # To query CrossRef API online
-from habanero import Crossref
+from habanero import Crossref, RequestError
 
 # For caching habanero API requests to CrossRef
-import requests_cache
 
 from rich.table import Table
 
@@ -25,6 +28,7 @@ from rich.traceback import install
 install(show_locals=True)  # Shows local variables in traceback
 
 
+from nameit.config import crossref_mailto
 from nameit.utils.paths import cache_dir
 from nameit.utils.verbosity import key_value_table, vprint, vv_exception, vvprint
 from nameit.utils.unified_console import console
@@ -45,7 +49,6 @@ from nameit.utils.validators import (
 from nameit.models.data_models import Publication
 
 # Enable caching with 1-year expiration
-requests_cache.install_cache(str(cache_dir() / 'crossref_cache'), expire_after=31536000)  #
 
 def format_author_names(authors: list, debug: bool = False) -> str:
     """
@@ -475,40 +478,94 @@ def extract_doi_without_jstor(text):
     return valid_dois
 
 
-# Using Crossref API to match the extracted DOI
-def fetch_metadata_by_doi(doi: str) -> Optional[Dict[str, Any]]:
-    """
-        Fetches metadata for a given DOI using the Crossref API.
+# Crossref answers about a DOI practically never change, so a year in the cache is safe.
+CACHE_TTL_SECONDS = 365 * 24 * 3600
+RETRY_STATUS_CODES = {429, 500, 502, 503, 504}   # rate limited / temporary server trouble
+MAX_ATTEMPTS = 3
 
-        Args:
-            doi (str): The DOI for which to fetch metadata.
 
-        Returns:
-            Optional[Dict[str, Any]]: The metadata associated with the DOI if successful, otherwise None.
-        """
+def _cache_file(doi: str) -> Path:
+    return cache_dir() / "crossref" / f"{hashlib.sha256(doi.strip().lower().encode()).hexdigest()}.json"
+
+
+def _read_cache(doi: str) -> Optional[Dict[str, Any]]:
+    path = _cache_file(doi)
     try:
-        cr = Crossref(mailto="jose.teixeira@abo.fi")
-        metadata = cr.works(doi)
+        if time.time() - path.stat().st_mtime > CACHE_TTL_SECONDS:
+            return None
+        cached = json.loads(path.read_text(encoding="utf-8"))
+        return cached if isinstance(cached, dict) else None
+    except (OSError, ValueError):  # missing, unreadable or corrupt: just ask Crossref again
+        return None
 
-        if not metadata or 'message' not in metadata:
-            raise InvalidCrossrefDataError("No 'message' in response.")
 
-        message = metadata['message']
-        if not message.get('title') or not message.get('author'):
-            raise InvalidCrossrefDataError("Missing required fields like title or author.")
+def _write_cache(doi: str, metadata: Dict[str, Any]) -> None:
+    path = _cache_file(doi)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(metadata), encoding="utf-8")
+        tmp.replace(path)  # atomic: never leaves a half-written cache file
+    except (OSError, TypeError, ValueError) as e:
+        logger.warning(f"Could not cache Crossref answer for {doi}: {e}")
 
-        if not valid_crossref_metadata(metadata):
-            raise InvalidCrossrefDataError(f"Invalid CrossRefData. Did not pass valid_crossref_metadata")
 
-        logger.info(f"Successfully extracted metadata for DOI: {doi} through crossref.org")
-        #console.print(metadata)  # Use rich to print the metadata
-        #console.print(metadata.get("author"))
+def _essential_fields_problem(metadata: Any) -> Optional[str]:
+    """Why a Crossref answer cannot be used, or None. Only author, title and year are essential:
+    a missing journal or publisher becomes 'Unknown publication' / 'Unknown publisher' downstream."""
+    if not isinstance(metadata, dict) or not isinstance(metadata.get("message"), dict):
+        return "no 'message' in the answer"
+    try:
+        valid_crossref_metadata(metadata)
+    except InvalidCrossrefDataError as e:
+        essential = [f for f in e.missing_fields if not f.startswith(("container-title", "publisher"))]
+        if essential:
+            return f"missing {', '.join(essential)}"
+    return None
 
-    except Crossref.HttpError as e:
-        logger.error(f"HTTP error occurred while accessing Crossref API for DOI: {doi}. Error: {e}")
-    except Crossref.RateLimitError as e:
-        logger.error(f"Rate limit exceeded while accessing Crossref API for DOI: {doi}. Error: {e}")
-    except Exception as e:
-        logger.error(f"Unexpected error fetching metadata by DOI: {doi}. Error: {e}", exc_info=True)
 
+def fetch_metadata_by_doi(doi: str, sleep: Callable[[float], None] = time.sleep) -> Optional[Dict[str, Any]]:
+    """Fetch (cached) Crossref metadata for a DOI.
+
+    Transient failures (rate limits, 5xx, network errors) are retried with backoff.
+    Returns None when the DOI is unknown, the answer is unusable, or Crossref stays unreachable.
+    """
+    cached = _read_cache(doi)
+    if cached is not None:
+        logger.info(f"Crossref metadata for {doi} taken from the local cache")
+        vvprint(f"  Using cached Crossref answer for {doi}")
+        return cached
+
+    metadata: Optional[Dict[str, Any]] = None
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            metadata = Crossref(mailto=crossref_mailto()).works(doi)
+            break
+        except RequestError as e:
+            status = e.status_code if isinstance(e.status_code, int) else -1
+            if status in RETRY_STATUS_CODES and attempt < MAX_ATTEMPTS:
+                logger.warning(f"Crossref answered {e} for {doi}; retry {attempt}/{MAX_ATTEMPTS - 1}")
+                sleep(2 ** (attempt - 1))
+                continue
+            logger.error(f"Crossref error for DOI {doi}: {e}")
+            vprint(f"  [yellow]Crossref says: {e}[/yellow]")
+            return None
+        except Exception as e:  # network trouble: DNS, timeout, proxy, TLS ...
+            if attempt < MAX_ATTEMPTS:
+                logger.warning(f"Crossref unreachable for {doi} ({type(e).__name__}); retry {attempt}/{MAX_ATTEMPTS - 1}")
+                sleep(2 ** (attempt - 1))
+                continue
+            logger.error(f"Crossref unreachable for DOI {doi}: {type(e).__name__}: {e}")
+            vprint(f"  [yellow]Crossref unreachable ({type(e).__name__})[/yellow]")
+            return None
+
+    problem = _essential_fields_problem(metadata)
+    if problem:
+        logger.warning(f"Crossref record for {doi} is not usable: {problem}")
+        vprint(f"  [yellow]Crossref record for {doi} is not usable: {problem}[/yellow]")
+        return None
+
+    assert isinstance(metadata, dict)  # _essential_fields_problem() returned None only for dicts
+    logger.info(f"Successfully extracted metadata for DOI: {doi} through crossref.org")
+    _write_cache(doi, metadata)
     return metadata
