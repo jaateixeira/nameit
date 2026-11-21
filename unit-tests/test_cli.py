@@ -21,10 +21,19 @@ class TestCli(unittest.TestCase):
             args = cli.parse_and_validate_arguments([str(self.tmp)])
         self.assertTrue(args.use_crossref)
 
-    def test_layoutlm_is_rejected_clearly(self):
-        with self.assertRaises(SystemExit) as ctx:
-            cli.parse_and_validate_arguments(["-l", str(self.tmp)])
-        self.assertEqual(ctx.exception.code, 2)
+    def test_layout_method_selected_with_l(self):
+        for flag in ("-l", "--use-layout", "--use-layoutlmv3"):
+            with self.subTest(flag):
+                args = cli.parse_and_validate_arguments([flag, str(self.tmp)])
+                self.assertTrue(args.use_layout)
+                self.assertFalse(args.use_crossref)
+                self.assertEqual(cli.selected_methods(args), ["layout"])
+
+    def test_crossref_down_with_layout_works_offline(self):
+        with mock.patch.object(cli, "is_there_internet_access", return_value=False):
+            args = cli.parse_and_validate_arguments(["-c", "-l", str(self.tmp)])
+        self.assertFalse(args.use_crossref)
+        self.assertEqual(cli.selected_methods(args), ["layout"])
 
     def test_no_internet_without_fallback_exits(self):
         with mock.patch.object(cli, "is_there_internet_access", return_value=False):

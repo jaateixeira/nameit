@@ -30,6 +30,7 @@ PathInput = Union[PathLike, Sequence[PathLike]]      # one path/pattern, or seve
 
 METHOD_CROSSREF = "crossref"
 METHOD_PDF_METADATA = "pdf-metadata"
+METHOD_LAYOUT = "layout"
 UNDO_LOG_PREFIX = ".nameit-undo-"
 
 STATUS_RENAME = "rename"
@@ -109,9 +110,15 @@ def _extract_pdf_metadata(pdf_file: str) -> Optional[Publication]:
     return extract_publication_from_pdf_metadata(pdf_file)
 
 
+def _extract_layout(pdf_file: str) -> Optional[Publication]:
+    from nameit.layout import extract_publication_from_layout
+    return extract_publication_from_layout(pdf_file)
+
+
 EXTRACTORS: Dict[str, Callable[[str], Optional[Publication]]] = {
     METHOD_CROSSREF: _extract_crossref,
     METHOD_PDF_METADATA: _extract_pdf_metadata,
+    METHOD_LAYOUT: _extract_layout,
 }
 
 

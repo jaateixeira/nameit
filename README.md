@@ -3,7 +3,7 @@
 NameIt is a software tool that renames research articles in pdf files in a standardised way. 
 
 Based on the pdf metadata and on the content of the document first page, it renames the file  with author, year, title, publication, and publisher. 
-It can extract structured data from PDFs using: (1) pdf meta-data, (2) the CrossRef API, and (3) state-of-the-art layout understanding AI/ML models.
+It can extract structured data from PDFs using: (1) pdf meta-data, (2) the CrossRef API, and (3) the layout of the first page (font sizes and positions), which works offline and without a DOI.
 
 ![PDF](https://img.shields.io/badge/PDF-Renaming-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
 ![PDF Tools](https://img.shields.io/badge/PDF-Tools-FF0000?style=for-the-badge&logo=pdf&logoColor=white)
@@ -17,12 +17,10 @@ It can extract structured data from PDFs using: (1) pdf meta-data, (2) the Cross
 ![Habanero](https://img.shields.io/badge/Tool-Habanero-brightgreen)
 ![Transformers](https://img.shields.io/badge/🤗-Transformers-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)
 ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
-![LayoutLM](https://img.shields.io/badge/LayoutLM-v3-FF6F00?style=for-the-badge&logo=microsoft&logoColor=white)
 ![PDF%20AI](https://img.shields.io/badge/PDF_AI-Structured_Data-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
 
-Extract structured data from PDFs using state-of-the-art layout understanding models.
 
 
 ## Build Status
@@ -87,7 +85,6 @@ Example: "s13174-015-0028-2.pdf" as downloaded from the publisher would become "
 * Habanero (Crossref API)
 * PyMuPDF
 * libmagic (system library; `apt install libmagic1` or `brew install libmagic`)
-* Transformers and PyTorch - only for the optional LayoutLMv3 mode (`pip install -r requirements-ai.txt`)
 
 We suport the ext3, ext4, xfs, zfs, NTFS, APFS, HFS+ and xFAT filesystems. Support for FAT32 pending. 
 Should work in most modern computers running Linux, macOS and Windows. Problems could arise with the use of old  USB flash drives  and SDcard disks in old Linux Kernels. 
@@ -103,8 +100,6 @@ NameIt is pure python3 code.  It depends on several online public packages, publ
 
 `$ pip3 install PyMuPDF` <- required to process the first page of a pdf article. 
 
-## HuggingFace Transformers, PyTorch  ##
-`$ pip3 install -r requirements-ai.txt` <- optional, only to use the LayoutLM AI/ML model (experimental, not yet functional) 
 
 # How to use it 
 
@@ -113,7 +108,6 @@ NameIt is pure python3 code.  It depends on several online public packages, publ
 ```
 $ git clone https://github.com/jaateixeira/nameit && cd nameit
 $ pip install .            # or: pip install -e ".[dev]"   for development
-$ pip install ".[ai]"      # optional: only for the experimental LayoutLMv3 mode
 ```
 
 This gives you the `nameit` command (`python -m nameit` and the old `./NameIt` launcher work too).
@@ -127,6 +121,8 @@ $ nameit -d research-articles       # dry run: show old -> new names, rename not
 $ nameit -r research-articles       # include subfolders
 $ nameit -p research-articles       # use the metadata embedded in the PDF (offline)
 $ nameit -c -p research-articles    # Crossref first, PDF metadata as a fallback
+$ nameit -l research-articles       # page layout only: offline, no DOI needed (use when Crossref is down)
+$ nameit -c -p -l research-articles # all three, in that order
 $ nameit "papers/2024*.pdf"         # patterns: quote them (works on every shell) ...
 $ nameit papers/2024*.pdf a.pdf b/  # ... or let the shell expand them; several paths are fine
 $ nameit "papers/**/*.pdf"          # ** reaches into subfolders
@@ -151,7 +147,7 @@ $ nameit --undo research-articles/.nameit-undo-20261120-225603.json
 ```toml
 # ~/.nameitrc
 format = "{authors} ({year}). {title}. {publication}. {publisher}"   # the NameIt standard (default)
-methods = ["crossref", "pdf-metadata"]       # tried in this order when you give no -c / -p
+methods = ["crossref", "pdf-metadata", "layout"]       # tried in this order when you give no -c / -p / -l
 recursive = true
 crossref_mailto = "you@example.org"          # identifies you to Crossref's faster "polite" pool
 ```
@@ -188,7 +184,7 @@ By default, the tool first tries to find pdf's metadata to rename the file. If n
 to connect to Internet to retrieve the metadata associated to the DOI. 
 
 If pdf's metadata is not found and the retrieval of metadata via the DOI fails, the tool will still try to find the author, year, title, publication, and publisher from the article 1st page. 
-It looks for the size of the text fonts  to distinguishes between what is a title or what is the author information and so on, all by using the [LayoutLMv3](https://huggingface.co/docs/transformers/en/model_doc/layoutlmv3) pre-trained multimodal Transformer AI/ML model. 
+The layout method (`-l`) reads the first page with PyMuPDF: the title is the largest text near the top (journal banners are skipped), the authors are the lines below it, and the year comes from a published/copyright/citation line. It is a deterministic heuristic, not a trained model, so it can be wrong for unusual designs; use `--dry-run` to check. The journal is only filled when it is visible on the page or in the PDF's subject field.
 
 How well does it work? An early, informal check by the author on 100+ journal articles downloaded from publisher websites renamed most of them without issues, but that collection and its results were not kept, so the figure cannot be reproduced and we no longer quote a number. Author names with uncommon accents and titles with uncommon characters can be problematic.
 

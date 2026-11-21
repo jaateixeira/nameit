@@ -1,5 +1,0 @@
--r requirements.txt
-# Optional: only needed for the LayoutLMv3 mode (-l)
-transformers
-torch
-pillow

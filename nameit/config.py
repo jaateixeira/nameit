@@ -25,12 +25,12 @@ if sys.version_info >= (3, 11):
 else:  # pragma: no cover
     import tomli as tomllib
 
-from nameit.api import METHOD_CROSSREF, METHOD_PDF_METADATA
+from nameit.api import METHOD_CROSSREF, METHOD_LAYOUT, METHOD_PDF_METADATA
 from nameit.models.data_models import validate_name_template
 
 CONFIG_FILE_NAME = ".nameitrc"
 KNOWN_KEYS = {"format", "methods", "recursive", "crossref_mailto", "git"}
-KNOWN_METHODS = (METHOD_CROSSREF, METHOD_PDF_METADATA)
+KNOWN_METHODS = (METHOD_CROSSREF, METHOD_PDF_METADATA, METHOD_LAYOUT)
 
 
 class ConfigError(Exception):
