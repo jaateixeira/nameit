@@ -1,1 +1,0 @@
-print("Not implemented yet. Basic functionality still inside NameIt.py")
