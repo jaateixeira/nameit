@@ -190,7 +190,13 @@ to connect to Internet to retrieve the metadata associated to the DOI.
 If pdf's metadata is not found and the retrieval of metadata via the DOI fails, the tool will still try to find the author, year, title, publication, and publisher from the article 1st page. 
 It looks for the size of the text fonts  to distinguishes between what is a title or what is the author information and so on, all by using the [LayoutLMv3](https://huggingface.co/docs/transformers/en/model_doc/layoutlmv3) pre-trained multimodal Transformer AI/ML model. 
 
-From more that 100 journal articles downloaded directly from the publishers websites. We could rename 98 without issues.  Author names with no so common accents and articles titles with not so common characters can be problematic.
+How well does it work? An early, informal check by the author on 100+ journal articles downloaded from publisher websites renamed most of them without issues, but that collection and its results were not kept, so the figure cannot be reproduced and we no longer quote a number. Author names with uncommon accents and titles with uncommon characters can be problematic.
+
+What is reproducibly tested today (`unit-tests/`): the DOI found in each sample PDF in `test-data/` (offline golden tests), the `-p` PDF-metadata names, and the Crossref client against mocked responses. To measure the success rate on your own collection, with internet access run:
+
+    python tools/record_crossref_fixtures.py path/to/pdfs --report
+
+It prints one line per PDF and a final `N/M PDFs renamed via Crossref` count. Run it without `--report` on `test-data` to record real Crossref answers as fixtures that `unit-tests/test_crossref_replay.py` then replays offline.
 
 
 # Future features 

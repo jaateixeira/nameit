@@ -9,7 +9,7 @@ import os
 import time
 import re
 from pathlib import Path
-from typing import Callable, Optional, Dict, Any, Union
+from typing import Callable, List, Optional, Dict, Any, Tuple, Union
 
 
 
@@ -236,6 +236,117 @@ def validate_crossref_returned_meta_data(meta_data: Dict[str, Any], debug: bool 
         publisher=valid_publisher)
 
 
+def find_doi_in_text(text: str) -> Optional[str]:
+    """Return the first usable DOI in `text`, or None.
+
+    Skips JSTOR "stable" URLs (their numbers look like DOIs but are not) and strips doi.org URL prefixes.
+    """
+    # Method 1: First find all DOI-like patterns, then filter out JSTOR
+    # Basic DOI pattern (captures most DOIs)
+    basic_doi_pattern = r'\b(10\.\d{4,}(?:\.\d+)*/[^\s"\'<>()\[\]{}]*[^\s"\'<>()\[\]{}.])'
+
+    # Find all potential DOIs
+    potential_dois = list(re.finditer(basic_doi_pattern, text, re.IGNORECASE))
+
+    for match in potential_dois:
+        candidate = match.group(0)
+
+        # Clean up the DOI
+        candidate = candidate.rstrip('.,;:')
+
+        # Method 1: Check if this is a JSTOR URL by examining the match and context
+        # Get a larger context around the match to check for URL patterns
+        start_pos = match.start()
+        end_pos = match.end()
+
+        # Look at context before and after
+        context_start = max(0, start_pos - 100)  # Look 100 chars before
+        context_end = min(len(text), end_pos + 50)  # Look 50 chars after
+        full_context = text[context_start:context_end]
+
+        # Check if this appears to be a JSTOR URL
+        # JSTOR URLs typically have patterns like:
+        # - https://www.jstor.org/stable/10.xxxx/xxxx
+        # - http://jstor.org/stable/10.xxxx/xxxx
+        # - www.jstor.org/stable/10.xxxx/xxxx
+
+        # Extract the full potential URL containing this match
+        # Look for URL patterns ending at whitespace or punctuation
+        url_pattern = r'(https?://[^\s<>"\'()]+|www\.[^\s<>"\'()]+)'
+        urls_in_context = re.findall(url_pattern, full_context, re.IGNORECASE)
+
+        is_jstor_url = False
+        for url in urls_in_context:
+            if candidate in url and ('jstor.org' in url.lower() or '/stable/' in url.lower()):
+                is_jstor_url = True
+                vvprint(f"  Skipping JSTOR URL: {url[:80]}...")
+                break
+
+        if is_jstor_url:
+            continue
+
+        # Additional check: if the candidate itself looks like a JSTOR pattern
+        if '/stable/10.' in candidate.lower() or 'jstor.org' in candidate.lower():
+            continue
+
+        # Method 2: Check if the match is preceded by URL indicators
+        # Simple check: look for http://, https://, or www. immediately before
+        text_before = text[max(0, start_pos - 20):start_pos]
+        url_indicators = ['http://', 'https://', 'www.']
+
+        # If there's a URL indicator close before and JSTOR in the text, skip
+        has_url_indicator = any(indicator in text_before.lower() for indicator in url_indicators)
+        has_jstor_nearby = 'jstor' in text_before.lower() or 'jstor' in text[start_pos:end_pos + 20].lower()
+
+        if has_url_indicator and has_jstor_nearby:
+            continue
+
+        # Clean any URL prefixes from the candidate
+        url_prefixes = [
+            'https://doi.org/', 'http://doi.org/',
+            'https://dx.doi.org/', 'http://dx.doi.org/',
+            'doi.org/', 'dx.doi.org/'
+        ]
+
+        for prefix in url_prefixes:
+            if candidate.lower().startswith(prefix):
+                candidate = candidate[len(prefix):]
+                break
+
+        # Validate the cleaned DOI
+        # Basic validation: should start with 10. and have a slash
+        if not candidate.startswith('10.'):
+            continue
+
+        if '/' not in candidate:
+            continue
+
+        # Should not contain spaces
+        if ' ' in candidate:
+            continue
+
+        # Final check: should match the basic DOI pattern after cleaning
+        if re.match(r'^10\.\d{4,}(?:\.\d+)*/[^\s]+$', candidate, re.IGNORECASE):
+            return candidate
+    return None
+
+
+def find_dois_in_pdf(pdf_file: str) -> List[Tuple[int, str]]:
+    """[(page number starting at 1, DOI)] for the pages NameIt scans: first, second and last."""
+    found: List[Tuple[int, str]] = []
+    with pymupdf.open(pdf_file) as pdf_document:
+        count = len(pdf_document)
+        scanned = []
+        for index in (0, 1, count - 1):
+            if 0 <= index < count and index not in scanned:
+                scanned.append(index)
+        for index in scanned:
+            doi = find_doi_in_text(pdf_document[index].get_text("text"))
+            if doi:
+                found.append((index + 1, doi))
+    return found
+
+
 def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Union[Publication, None]:
     """
     Extract metadata from a PDF file by identifying the DOI on the first, second, 
@@ -277,101 +388,11 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
                 
                 vvprint(f"  Checking page {actual_page_index + 1} of {len(pdf_document)}")
                 
-                # Method 1: First find all DOI-like patterns, then filter out JSTOR
-                # Basic DOI pattern (captures most DOIs)
-                basic_doi_pattern = r'\b(10\.\d{4,}(?:\.\d+)*/[^\s"\'<>()\[\]{}]*[^\s"\'<>()\[\]{}.])'
-                
-                # Find all potential DOIs
-                potential_dois = list(re.finditer(basic_doi_pattern, text, re.IGNORECASE))
-                
-                doi_match = None
-                doi_text = None
-                
-                for match in potential_dois:
-                    candidate = match.group(0)
-                    
-                    # Clean up the DOI
-                    candidate = candidate.rstrip('.,;:')
-                    
-                    # Method 1: Check if this is a JSTOR URL by examining the match and context
-                    # Get a larger context around the match to check for URL patterns
-                    start_pos = match.start()
-                    end_pos = match.end()
-                    
-                    # Look at context before and after
-                    context_start = max(0, start_pos - 100)  # Look 100 chars before
-                    context_end = min(len(text), end_pos + 50)  # Look 50 chars after
-                    full_context = text[context_start:context_end]
-                    
-                    # Check if this appears to be a JSTOR URL
-                    # JSTOR URLs typically have patterns like:
-                    # - https://www.jstor.org/stable/10.xxxx/xxxx
-                    # - http://jstor.org/stable/10.xxxx/xxxx
-                    # - www.jstor.org/stable/10.xxxx/xxxx
-                    
-                    # Extract the full potential URL containing this match
-                    # Look for URL patterns ending at whitespace or punctuation
-                    url_pattern = r'(https?://[^\s<>"\'()]+|www\.[^\s<>"\'()]+)'
-                    urls_in_context = re.findall(url_pattern, full_context, re.IGNORECASE)
-                    
-                    is_jstor_url = False
-                    for url in urls_in_context:
-                        if candidate in url and ('jstor.org' in url.lower() or '/stable/' in url.lower()):
-                            is_jstor_url = True
-                            vvprint(f"  Skipping JSTOR URL: {url[:80]}...")
-                            break
-                    
-                    if is_jstor_url:
-                        continue
-                    
-                    # Additional check: if the candidate itself looks like a JSTOR pattern
-                    if '/stable/10.' in candidate.lower() or 'jstor.org' in candidate.lower():
-                        continue
-                    
-                    # Method 2: Check if the match is preceded by URL indicators
-                    # Simple check: look for http://, https://, or www. immediately before
-                    text_before = text[max(0, start_pos - 20):start_pos]
-                    url_indicators = ['http://', 'https://', 'www.']
-                    
-                    # If there's a URL indicator close before and JSTOR in the text, skip
-                    has_url_indicator = any(indicator in text_before.lower() for indicator in url_indicators)
-                    has_jstor_nearby = 'jstor' in text_before.lower() or 'jstor' in text[start_pos:end_pos + 20].lower()
-                    
-                    if has_url_indicator and has_jstor_nearby:
-                        continue
-                    
-                    # Clean any URL prefixes from the candidate
-                    url_prefixes = [
-                        'https://doi.org/', 'http://doi.org/',
-                        'https://dx.doi.org/', 'http://dx.doi.org/',
-                        'doi.org/', 'dx.doi.org/'
-                    ]
-                    
-                    original_candidate = candidate
-                    for prefix in url_prefixes:
-                        if candidate.lower().startswith(prefix):
-                            candidate = candidate[len(prefix):]
-                            break
-                    
-                    # Validate the cleaned DOI
-                    # Basic validation: should start with 10. and have a slash
-                    if not candidate.startswith('10.'):
-                        continue
-                    
-                    if '/' not in candidate:
-                        continue
-                    
-                    # Should not contain spaces
-                    if ' ' in candidate:
-                        continue
-                    
-                    # Final check: should match the basic DOI pattern after cleaning
-                    if re.match(r'^10\.\d{4,}(?:\.\d+)*/[^\s]+$', candidate, re.IGNORECASE):
-                        doi_match = match
-                        doi_text = candidate
-                        vprint(f"  Found DOI [cyan]{doi_text}[/cyan] on page {actual_page_index + 1}")
-                        break
-                
+                doi_text = find_doi_in_text(text)
+                doi_match = doi_text is not None
+                if doi_text:
+                    vprint(f"  Found DOI [cyan]{doi_text}[/cyan] on page {actual_page_index + 1}")
+
                 if doi_match and doi_text:
                     doi = doi_text
                     logger.info(f"Extracting DOI: {doi} from file: {pdf_file} (found on page {actual_page_index + 1})")
