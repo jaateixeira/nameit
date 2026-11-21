@@ -16,6 +16,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Union
 
+ProgressCallback = Callable[[Path, int, int], None]  # (file, zero-based index, total)
+
 from nameit.models.exceptions import InvalidNameItPath
 from nameit.models.types import PathLike
 from nameit.utils.unified_logger import logger
@@ -111,10 +113,12 @@ EXTRACTORS: Dict[str, Callable[[str], object]] = {
 
 def plan_rename(path: PathLike,
                 methods: Sequence[str] = (METHOD_CROSSREF,),
-                recursive: bool = False) -> List[RenamePlan]:
+                recursive: bool = False,
+                progress: Optional[ProgressCallback] = None) -> List[RenamePlan]:
     """Work out the new name of every PDF at `path` without renaming anything.
 
     Methods are tried in the given order; the first that yields a publication wins.
+    `progress(file, index, total)` is called before each file is examined.
     """
     unknown = [m for m in methods if m not in EXTRACTORS]
     if unknown:
@@ -128,7 +132,10 @@ def plan_rename(path: PathLike,
 
     plans: List[RenamePlan] = []
     reserved: List[Path] = []
-    for pdf in iter_pdf_files(root, recursive):
+    pdf_files = list(iter_pdf_files(root, recursive))
+    for index, pdf in enumerate(pdf_files):
+        if progress:
+            progress(pdf, index, len(pdf_files))
         try:
             is_valid_path(pdf)
         except InvalidNameItPath as e:
