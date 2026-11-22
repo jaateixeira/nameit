@@ -273,7 +273,7 @@ def plan_with_progress(path: Sequence[str], cli_args: argparse.Namespace) -> lis
     chooser = None
     if interactive_mode(cli_args):
         template = cli_args.name_format or DEFAULT_NAME_TEMPLATE
-        chooser = Chooser(console, lambda c: c.publication.render(template) + ".pdf")
+        chooser = Chooser(console, lambda c: c.publication.render(template))
     if get_verbosity() != NORMAL or chooser is not None:  # prompts and a live progress bar do not mix
         return plan_rename(path, methods, cli_args.recursive, name_format=cli_args.name_format,
                            strategy=strategy, chooser=chooser)
@@ -291,7 +291,11 @@ def plan_with_progress(path: Sequence[str], cli_args: argparse.Namespace) -> lis
 
 def execute_main_logic(cli_args: argparse.Namespace) -> int:
     if cli_args.undo:
-        restored = undo_renames(cli_args.undo)
+        try:
+            restored = undo_renames(cli_args.undo)
+        except (OSError, ValueError, KeyError) as e:  # missing log, bad JSON, wrong structure
+            console.print(f"[red]Cannot read the undo log {cli_args.undo}: {e}[/red]")
+            return 1
         console.print(f"[green]Restored {len(restored)} file(s).[/green]")
         return 0
 

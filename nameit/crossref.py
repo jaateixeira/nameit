@@ -436,69 +436,6 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
 
     return None
 
-
-# Alternative simpler function that extracts DOIs while excluding JSTOR
-def extract_doi_without_jstor(text):
-    """
-    Extract DOIs from text while excluding JSTOR URLs.
-    
-    Args:
-        text (str): Text to search
-        
-    Returns:
-        list: List of found DOIs
-    """
-    # First, find all URLs in the text
-    url_pattern = r'https?://[^\s<>"\']+|www\.[^\s<>"\']+'
-    urls = re.findall(url_pattern, text, re.IGNORECASE)
-    
-    # Filter out JSTOR URLs
-    non_jstor_urls = [url for url in urls if 'jstor.org' not in url.lower() and '/stable/' not in url.lower()]
-    
-    # Now look for DOIs that aren't in URLs (or are in non-JSTOR URLs)
-    doi_pattern = r'\b(10\.\d{4,}(?:\.\d+)*/[^\s"\'<>()\[\]{}]*[^\s"\'<>()\[\]{}.])'
-    
-    all_matches = list(re.finditer(doi_pattern, text, re.IGNORECASE))
-    valid_dois = []
-    
-    for match in all_matches:
-        doi_candidate = match.group(0).rstrip('.,;:')
-        start, end = match.start(), match.end()
-        
-        # Check if this DOI is part of any URL
-        is_part_of_url = False
-        for url in urls:
-            url_start = text.find(url)
-            if url_start != -1:
-                url_end = url_start + len(url)
-                if start >= url_start and end <= url_end:
-                    is_part_of_url = True
-                    # If it's part of a URL, only accept if it's a non-JSTOR URL
-                    if 'jstor.org' in url.lower() or '/stable/' in url.lower():
-                        # Skip JSTOR URLs
-                        continue
-                    else:
-                        # Extract DOI from the URL (remove URL parts)
-                        for prefix in ['https://doi.org/', 'http://doi.org/', 'https://dx.doi.org/', 'http://dx.doi.org/', 'doi.org/']:
-                            if url.lower().startswith(prefix):
-                                doi_candidate = url[len(prefix):]
-                                break
-        
-        # If not part of a URL, or part of a non-JSTOR URL, add it
-        if not is_part_of_url or (is_part_of_url and doi_candidate.startswith('10.')):
-            # Clean any remaining URL prefixes
-            for prefix in ['https://doi.org/', 'http://doi.org/', 'https://dx.doi.org/', 'http://dx.doi.org/', 'doi.org/']:
-                if doi_candidate.lower().startswith(prefix):
-                    doi_candidate = doi_candidate[len(prefix):]
-                    break
-            
-            # Validate
-            if re.match(r'^10\.\d{4,}(?:\.\d+)*/[^\s]+$', doi_candidate, re.IGNORECASE):
-                valid_dois.append(doi_candidate)
-    
-    return valid_dois
-
-
 # Crossref answers about a DOI practically never change, so a year in the cache is safe.
 CACHE_TTL_SECONDS = 365 * 24 * 3600
 RETRY_STATUS_CODES = {429, 500, 502, 503, 504}   # rate limited / temporary server trouble
