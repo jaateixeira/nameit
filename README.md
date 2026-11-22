@@ -193,6 +193,8 @@ The layout method (`-l`) reads the first page with PyMuPDF: the title is the lar
 
 How well does it work? An early, informal check by the author on 100+ journal articles downloaded from publisher websites renamed most of them without issues, but that collection and its results were not kept, so the figure cannot be reproduced and we no longer quote a number. Author names with uncommon accents and titles with uncommon characters can be problematic.
 
+Wrong-paper guard: PDFs often print DOIs of *other* papers (reference lists). A Crossref answer is only accepted when at least 80% of its title's words appear in the first three pages of the PDF; otherwise that DOI is ignored (shown with `-v`) and the next page is tried. Scanned PDFs without text, and titles under three words, cannot be checked and are accepted.
+
 What is reproducibly tested today (`unit-tests/`): the DOI found in each sample PDF in `test-data/` (offline golden tests), the `-p` PDF-metadata names, and the Crossref client against mocked responses. To measure the success rate on your own collection, with internet access run:
 
     python tools/record_crossref_fixtures.py path/to/pdfs --report

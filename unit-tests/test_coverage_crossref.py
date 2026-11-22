@@ -141,5 +141,61 @@ class TestDoiInPdfFlow(unittest.TestCase):
         self.assertEqual(found, [(1, "10.1000/a.1"), (3, "10.1000/c.3")])
 
 
+class TestTitleVerification(unittest.TestCase):
+    PAGE = ("Deep learning applications and challenges in big data analytics. Maryam Najafabadi et al. "
+            "Abstract. Big Data Analytics and Deep Learning are two high-focus of data science. " * 3)
+
+    def test_own_title_matches_despite_case_punctuation_and_hyphenation(self):
+        match = crossref.title_matches_pdf_text
+        self.assertTrue(match("Deep Learning Applications and Challenges in Big Data Analytics", self.PAGE))
+        self.assertTrue(match("Deep learning: applications & challenges in big-data analytics", self.PAGE))
+        self.assertTrue(match("Deep learning applica-\ntions and challenges in big data analytics",
+                              self.PAGE.replace("applications", "applica-\ntions")))
+
+    def test_another_papers_title_does_not_match(self):
+        self.assertFalse(crossref.title_matches_pdf_text(
+            "Inflation targeting in high inflation emerging economies: evidence from India", self.PAGE))
+
+    def test_undecidable_cases_return_none(self):
+        self.assertIsNone(crossref.title_matches_pdf_text("Short title", self.PAGE))          # < 3 distinct words
+        self.assertIsNone(crossref.title_matches_pdf_text("A long enough title for checking", "scan"))  # no text
+
+    def test_reference_doi_is_rejected_and_next_page_used(self):
+        """Page 1 carries a DOI that belongs to a cited paper; the paper's own DOI is on page 2."""
+        own = {"message": {**GOOD["message"], "title": ["Quantum widgets and their structural properties"]}}
+        cited = {"message": {**GOOD["message"], "title": ["Marketing mix effects on private labels brand equity"]}}
+        body = "\n".join(["Quantum widgets and their structural properties."] * 12)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "p.pdf")
+            make_pdf(path, [body + "\nSee also doi 10.1000/cited.1", "10.1000/own.2"])
+            with mock.patch.object(crossref, "fetch_metadata_by_doi", side_effect=[cited, own]) as fetch:
+                pub = crossref.extract_publication_metadata_from_crossref_using_doi_in_pdf(path)
+        self.assertEqual(pub.title, "Quantum widgets and their structural properties")
+        self.assertEqual(fetch.call_count, 2)
+
+    def test_only_a_foreign_doi_means_no_crossref_name(self):
+        cited = {"message": {**GOOD["message"], "title": ["Marketing mix effects on private labels brand equity"]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "p.pdf")
+            make_pdf(path, ["\n".join(["Quantum widgets and their structural properties."] * 12) + "\n10.1000/cited.1"])
+            with mock.patch.object(crossref, "fetch_metadata_by_doi", return_value=cited):
+                self.assertIsNone(crossref.extract_publication_metadata_from_crossref_using_doi_in_pdf(path))
+
+    def test_sample_pdfs_keep_their_own_titles(self):
+        """No false rejections: each sample's real title is confirmed by its own first pages."""
+        from nameit.layout import extract_publication_from_layout
+        data = Path(__file__).resolve().parent.parent / "test-data"
+        checked = 0
+        for pdf in sorted(data.glob("*.pdf")):
+            pub = extract_publication_from_layout(str(pdf))
+            if not pub:
+                continue
+            with pymupdf.open(pdf) as doc:
+                text = "\n".join(doc[i].get_text("text") for i in range(min(3, len(doc))))
+            self.assertTrue(crossref.title_matches_pdf_text(pub.title, text), pdf.name)
+            checked += 1
+        self.assertGreaterEqual(checked, 10)
+
+
 if __name__ == "__main__":
     unittest.main()
