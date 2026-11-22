@@ -47,5 +47,4 @@ Features list
 * Try to look for further solution for PDF where there are no DOI
 * Maybe renamer for e-books
 
-* Do not trust DOIs on later pages: if page 1 has no DOI, the last-page DOI is usually a reference-list DOI of another paper and would rename the file after the wrong article. Prefer page 1/2, or cross-check the title returned by Crossref against the PDF text.
 * Record real Crossref answers (python tools/record_crossref_fixtures.py test-data) and commit test-data/crossref/ so the replay test runs.

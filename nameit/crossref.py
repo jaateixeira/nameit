@@ -347,6 +347,43 @@ def find_dois_in_pdf(pdf_file: str) -> List[Tuple[int, str]]:
     return found
 
 
+# A DOI printed in the PDF is not always the paper's own: reference lists and "see also" notes carry
+# DOIs of other papers. The title Crossref returns must therefore show up in the first pages.
+TITLE_CHECK_PAGES = 3
+TITLE_MATCH_THRESHOLD = 0.8      # share of the title's distinct words that must appear in those pages
+_MIN_TITLE_WORDS = 3             # shorter titles cannot be verified reliably
+_MIN_TEXT_CHARS = 200            # less text than this means a scan: nothing to verify against
+
+
+def _words(text: str) -> List[str]:
+    return re.findall(r"\w{3,}", text.replace("-\n", "").casefold())
+
+
+def title_matches_pdf_text(title: str, pdf_text: str) -> Optional[bool]:
+    """Does `title` (from Crossref) occur in `pdf_text`? None when that cannot be decided.
+
+    Compares the share of the title's distinct words found in the text, so line breaks,
+    hyphenation, capitalisation and punctuation do not matter.
+    """
+    title_words = set(_words(title))
+    if len(title_words) < _MIN_TITLE_WORDS or len(pdf_text.strip()) < _MIN_TEXT_CHARS:
+        return None
+    text_words = set(_words(pdf_text))
+    return len(title_words & text_words) / len(title_words) >= TITLE_MATCH_THRESHOLD
+
+
+def _title_confirmed(pdf_document: "pymupdf.Document", title: str, doi: str) -> bool:
+    """False only when the text of the first pages shows the DOI belongs to a different paper."""
+    pages = range(min(TITLE_CHECK_PAGES, len(pdf_document)))
+    text = "\n".join(pdf_document[i].get_text("text") for i in pages)
+    verdict = title_matches_pdf_text(title, text)
+    if verdict is False:
+        logger.warning(f"DOI {doi} returns '{title}', which is not in the first pages: probably another paper's DOI")
+        vprint(f"  [yellow]DOI {doi} is for \"{title}\", which does not appear in the first pages: "
+               f"ignoring it (probably a reference)[/yellow]")
+    return verdict is not False
+
+
 def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -> Union[Publication, None]:
     """
     Extract metadata from a PDF file by identifying the DOI on the first, second, 
@@ -408,6 +445,9 @@ def extract_publication_metadata_from_crossref_using_doi_in_pdf(pdf_file: str) -
                             logger.warning(f"Crossref metadata for {doi} is not usable: {e}")
                             vprint(f"  [yellow]Crossref metadata for {doi} is not usable: {e}[/yellow]")
                             continue  # try the next page
+
+                        if not _title_confirmed(pdf_document, article_publication.title, doi):
+                            continue  # the DOI belongs to some other paper (e.g. a reference): try the next page
 
                         vprint(f"  [green]Name: {article_publication}[/green]")
                         return article_publication
