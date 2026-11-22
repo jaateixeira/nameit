@@ -3,7 +3,7 @@ import pathlib
 import re
 import string
 from dataclasses import dataclass, field
-from typing import List, Optional, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 from nameparser import HumanName
 from nameit.utils.validators import (
     validate_first_name,
@@ -13,7 +13,7 @@ from nameit.utils.validators import (
     validate_journal,
     validate_year,
     validate_author,
-    validate_publication, validate_author_family_name, validate_publisher
+    validate_publication, validate_author_family_name, validate_publisher, validate_publisher_name
 )
 
 
@@ -82,15 +82,21 @@ class Publication:
 
     @property
     def validate(self) -> dict:
-        publication_data = {
-            "authors": validate_author_family_name(self.authors),
-            "year": validate_year(self.year),
-            "title": validate_title(self.title),
-            "publication": validate_journal(self.publication),
-            "publisher": validate_publisher(self.publisher)
-        }
-
-        return validate_publication(publication_data)
+        """Problems with the fields, as {field: message}; empty when the publication is fine."""
+        checks: Tuple[Tuple[str, Callable[[Any], Any], Any], ...] = (
+            ("authors", validate_author_family_name, self.authors),
+            ("year", validate_year, self.year),
+            ("title", validate_title, self.title),
+            ("publication", validate_journal, self.publication),
+            ("publisher", validate_publisher_name, self.publisher),
+        )
+        errors = {}
+        for name, check, value in checks:
+            try:
+                check(value)
+            except (ValueError, TypeError) as e:
+                errors[name] = str(e)
+        return errors
 
     def _short_publisher(self) -> str:
         mapping = {

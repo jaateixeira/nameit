@@ -54,6 +54,12 @@ version = { attr = "nameit.__version__" }
 [tool.setuptools.packages.find]
 include = ["nameit*"]
 
+[tool.coverage.run]
+source = ["nameit"]
+
+[tool.coverage.report]
+show_missing = true
+
 [tool.mypy]
 ignore_missing_imports = true   # habanero, magic, pymupdf, bibtexparser ship no type stubs
 warn_unused_ignores = true

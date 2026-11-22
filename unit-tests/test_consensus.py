@@ -92,6 +92,21 @@ class TestChooser(unittest.TestCase):
         self.assertIsNone(c(Path("b.pdf"), self.cands, self.decision))
 
 
+class TestInteractiveRun(unittest.TestCase):
+    def test_interactive_cli_shows_each_name_with_a_single_pdf_extension(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        shutil.copy(SAMPLE, tmp / "paper.pdf")
+        with mock.patch.object(cli, "is_there_internet_access", return_value=False), \
+                mock.patch.object(Console, "input", return_value=""), \
+                cli.console.capture() as capture:
+            code = cli.main(["-i", str(tmp)])
+        self.assertEqual(code, 0)
+        self.assertNotIn(".pdf.pdf", capture.get())
+        self.assertIn("(suggested)", capture.get())
+        self.assertTrue(any(p.name.startswith("Najafabadi") for p in tmp.glob("*.pdf")))
+
+
 class TestPlanRenameVote(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
